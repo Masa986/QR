@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>出退管理</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg:        #f5f4ef;
+  --surface:   #ffffff;
+  --surface2:  #eeede8;
+  --border:    #dddcd6;
+  --ink:       #1a1916;
+  --ink2:      #6b6960;
+  --ink3:      #a8a79f;
+  --accent:    #d4551a;
+  --accent-l:  #fbe9e0;
+  --green:     #1a7a4a;
+  --green-l:   #e0f5eb;
+  --red:       #c0392b;
+  --red-l:     #fdecea;
+  --yellow:    #b07d10;
+  --shadow:    0 2px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.15);
+
+  /* grade palette – up to 6 grades */
+  --g1: #3b82f6; --g1-l: #eff6ff;
+  --g2: #8b5cf6; --g2-l: #f5f3ff;
+  --g3: #10b981; --g3-l: #ecfdf5;
+  --g4: #f59e0b; --g4-l: #fffbeb;
+  --g5: #ef4444; --g5-l: #fef2f2;
+  --g6: #ec4899; --g6-l: #fdf2f8;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overscroll-behavior:none;}
+
+/* ════ GATE ════ */
+#gate{position:fixed;inset:0;z-index:500;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
+.gate-eyebrow{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.38em;color:var(--accent);margin-bottom:1.8rem;}
+.gate-h{font-size:1.9rem;font-weight:900;color:#fff;text-align:center;line-height:1.2;margin-bottom:0.5rem;}
+.gate-sub{color:var(--ink3);font-size:0.82rem;margin-bottom:2.5rem;text-align:center;}
+.gate-wrap{position:relative;width:100%;max-width:320px;margin-bottom:0.8rem;}
+.gate-wrap input{width:100%;padding:0.9rem 1rem 0.9rem 2.8rem;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.13);border-radius:12px;color:#fff;font-size:1rem;font-family:'DM Mono',monospace;letter-spacing:0.15em;outline:none;transition:border-color 0.2s;}
+.gate-wrap input:focus{border-color:var(--accent);}
+.gate-wrap .ico{position:absolute;left:1rem;top:50%;transform:translateY(-50%);font-size:0.95rem;}
+.gate-btn{width:100%;max-width:320px;padding:0.9rem;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:0.95rem;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:opacity 0.15s;}
+.gate-btn:active{opacity:0.82;}
+.gate-err{color:#ff7070;font-size:0.8rem;margin-top:0.6rem;min-height:1.2em;}
+.gate-hint{margin-top:1.6rem;font-size:0.68rem;color:rgba(255,255,255,0.17);font-family:'DM Mono',monospace;}
+
+/* ════ SHELL ════ */
+#shell{display:none;flex-direction:column;min-height:100vh;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0.7rem 1rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.tb-left{display:flex;flex-direction:column;}
+.tb-title{font-size:0.95rem;font-weight:700;}
+.tb-date{font-family:'DM Mono',monospace;font-size:0.67rem;color:var(--ink2);}
+.tb-clock{font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:500;color:var(--accent);}
+.nav{background:var(--surface);border-bottom:2px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-item{flex:1;min-width:68px;padding:0.65rem 0.3rem;text-align:center;font-size:0.7rem;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;white-space:nowrap;}
+.nav-item.on{color:var(--accent);border-bottom-color:var(--accent);}
+.pg{display:none;padding:1rem;animation:fadeIn 0.2s ease;}
+.pg.on{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ════ SCAN PAGE ════ */
+.scan-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:1rem;box-shadow:var(--shadow);}
+.scan-bar{padding:0.8rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.6rem;}
+.scan-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.8s infinite;flex-shrink:0;}
+.scan-dot.idle{background:var(--ink3);box-shadow:none;animation:none;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.scan-title{font-size:0.85rem;font-weight:700;}
+.scan-sub{font-size:0.7rem;color:var(--ink2);margin-left:auto;font-family:'DM Mono',monospace;}
+.cam-box{position:relative;width:100%;aspect-ratio:1;background:#111;}
+#video{width:100%;height:100%;object-fit:cover;display:block;}
+#canvas{display:none;}
+.cam-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.frame-box{width:55%;aspect-ratio:1;position:relative;}
+.corner{position:absolute;width:22px;height:22px;}
+.corner::before,.corner::after{content:'';position:absolute;background:var(--accent);}
+.corner-tl{top:0;left:0;}.corner-tl::before{top:0;left:0;width:100%;height:3px;}.corner-tl::after{top:0;left:0;width:3px;height:100%;}
+.corner-tr{top:0;right:0;}.corner-tr::before{top:0;right:0;width:100%;height:3px;}.corner-tr::after{top:0;right:0;width:3px;height:100%;}
+.corner-bl{bottom:0;left:0;}.corner-bl::before{bottom:0;left:0;width:100%;height:3px;}.corner-bl::after{bottom:0;left:0;width:3px;height:100%;}
+.corner-br{bottom:0;right:0;}.corner-br::before{bottom:0;right:0;width:100%;height:3px;}.corner-br::after{bottom:0;right:0;width:3px;height:100%;}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:sweep 2s linear infinite;}
+@keyframes sweep{0%{top:0}100%{top:100%}}
+.cam-msg{position:absolute;inset:0;background:rgba(15,15,15,0.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.6rem;color:#fff;font-size:0.82rem;text-align:center;padding:1.5rem;}
+.cam-msg .big{font-size:2.8rem;}
+.scan-foot{padding:0.8rem 1rem;display:flex;gap:0.6rem;flex-wrap:wrap;}
+
+/* ════ BUTTONS ════ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:0.4rem;padding:0.75rem 1rem;border-radius:12px;border:none;font-size:0.82rem;font-weight:700;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
+.btn-full{width:100%;display:flex;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-ghost{background:var(--surface2);color:var(--ink);border:1px solid var(--border);}
+.btn-red{background:var(--red);color:#fff;}
+.btn:active{transform:scale(0.96);}
+.btn:disabled{opacity:0.35;pointer-events:none;}
+
+/* ════ BOTTOM SHEET MODAL ════ */
+.modal-bg{position:fixed;inset:0;z-index:300;background:rgba(20,18,15,0.55);backdrop-filter:blur(5px);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.modal-bg.show{opacity:1;pointer-events:all;}
+.modal-sheet{width:100%;max-height:92vh;background:var(--surface);border-radius:24px 24px 0 0;overflow:hidden;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);box-shadow:0 -4px 40px rgba(0,0,0,0.18);}
+.modal-bg.show .modal-sheet{transform:translateY(0);}
+.handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0.75rem auto 0;flex-shrink:0;}
+
+/* ── STEP 1: grade select ── */
+#stepGrade{display:flex;flex-direction:column;}
+.step-head{padding:0.9rem 1.2rem 0.7rem;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;}
+.step-title{font-size:1.05rem;font-weight:700;}
+.step-close{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:1rem;color:var(--ink2);display:flex;align-items:center;justify-content:center;}
+.grade-body{padding:1rem;overflow-y:auto;flex:1;}
+.grade-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.65rem;}
+.grade-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0.3rem;padding:1.2rem 0.5rem;
+  border-radius:16px;border:2px solid transparent;
+  cursor:pointer;transition:all 0.15s;
+  font-family:'Noto Sans JP',sans-serif;
+}
+.grade-btn:active{transform:scale(0.96);}
+.grade-name{font-size:1.1rem;font-weight:700;}
+.grade-count{font-size:0.7rem;font-weight:400;opacity:0.7;font-family:'DM Mono',monospace;}
+
+/* grade color variants */
+.gc-0{background:var(--g1-l);color:var(--g1);border-color:rgba(59,130,246,0.25);}
+.gc-0:hover,.gc-0.sel{background:var(--g1);color:#fff;border-color:var(--g1);}
+.gc-1{background:var(--g2-l);color:var(--g2);border-color:rgba(139,92,246,0.25);}
+.gc-1:hover,.gc-1.sel{background:var(--g2);color:#fff;border-color:var(--g2);}
+.gc-2{background:var(--g3-l);color:var(--g3);border-color:rgba(16,185,129,0.25);}
+.gc-2:hover,.gc-2.sel{background:var(--g3);color:#fff;border-color:var(--g3);}
+.gc-3{background:var(--g4-l);color:var(--g4);border-color:rgba(245,158,11,0.25);}
+.gc-3:hover,.gc-3.sel{background:var(--g4);color:#fff;border-color:var(--g4);}
+.gc-4{background:var(--g5-l);color:var(--g5);border-color:rgba(239,68,68,0.25);}
+.gc-4:hover,.gc-4.sel{background:var(--g5);color:#fff;border-color:var(--g5);}
+.gc-5{background:var(--g6-l);color:var(--g6);border-color:rgba(236,72,153,0.25);}
+.gc-5:hover,.gc-5.sel{background:var(--g6);color:#fff;border-color:var(--g6);}
+
+/* ── STEP 2: name select ── */
+#stepName{display:none;flex-direction:column;}
+.name-head{padding:0.8rem 1rem 0.7rem;border-bottom:1px solid var(--border);flex-shrink:0;}
+.name-head-row1{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem;}
+.back-btn{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:0.9rem;color:var(--ink2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.grade-badge{display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.8rem;font-weight:700;}
+.name-close{width:30px;height:30px;border-radius:50%;background:var(--surface2);border:none;cursor:pointer;font-size:1rem;color:var(--ink2);display:flex;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0;}
+.modal-search{width:100%;padding:0.65rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--ink);font-size:0.88rem;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color 0.15s;}
+.modal-search:focus{border-color:var(--accent);}
+.name-body{overflow-y:auto;flex:1;padding:0.6rem 0.8rem;}
+
+/* radio items */
+.radio-item{display:flex;align-items:center;gap:0.8rem;padding:0.85rem 0.7rem;border-radius:12px;cursor:pointer;transition:background 0.12s;margin-bottom:0.3rem;border:2px solid transparent;}
+.radio-item.out-item{border-left:3px solid rgba(192,57,43,0.3);}
+.radio-item.selected{background:var(--accent-l);border-color:var(--accent);}
+.radio-item.out-item.selected{background:var(--red-l);border-color:var(--red);}
+.radio-circle{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;position:relative;transition:all 0.15s;}
+.radio-item.selected .radio-circle{background:var(--accent);border-color:var(--accent);}
+.radio-item.out-item.selected .radio-circle{background:var(--red);border-color:var(--red);}
+.radio-circle::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:0;transition:opacity 0.15s;}
+.radio-item.selected .radio-circle::after{opacity:1;}
+.radio-info{flex:1;min-width:0;}
+.radio-name{font-size:0.95rem;font-weight:500;}
+.radio-meta{font-size:0.7rem;margin-top:0.15rem;font-family:'DM Mono',monospace;}
+.meta-in{color:var(--green);} .meta-out{color:var(--red);}
+.radio-badge{font-size:0.66rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:20px;flex-shrink:0;}
+.badge-in{background:var(--green-l);color:var(--green);}
+.badge-out{background:var(--red-l);color:var(--red);}
+
+/* modal footer */
+.modal-foot{padding:0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.preview-bar{margin-bottom:0.6rem;padding:0.65rem 0.9rem;background:var(--surface2);border-radius:10px;font-size:0.82rem;color:var(--ink2);display:none;line-height:1.6;}
+.preview-bar.show{display:block;}
+.pv-name{font-weight:700;color:var(--ink);}
+.pv-out{color:var(--red);font-weight:700;}
+.pv-in{color:var(--green);font-weight:700;}
+.foot-row{display:flex;gap:0.6rem;}
+
+/* ════ MONITOR ════ */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-bottom:1rem;}
+.stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0.8rem 0.5rem;text-align:center;box-shadow:var(--shadow);}
+.stat-n{font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:500;line-height:1;}
+.stat-l{font-size:0.63rem;color:var(--ink2);margin-top:0.3rem;}
+.n-total{color:var(--ink);}.n-in{color:var(--green);}.n-out{color:var(--red);}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;}
+.sec-label{font-size:0.78rem;font-weight:700;letter-spacing:0.06em;color:var(--ink2);}
+.chip{font-size:0.67rem;font-weight:700;padding:0.18rem 0.6rem;border-radius:20px;font-family:'DM Mono',monospace;}
+.chip-out{background:var(--red-l);color:var(--red);}
+.out-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:14px;padding:0.9rem;margin-bottom:1rem;box-shadow:var(--shadow);}
+.out-pills{display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.5rem;}
+.out-pill{display:inline-flex;align-items:center;gap:0.3rem;background:var(--red-l);border:1px solid rgba(192,57,43,0.2);border-radius:20px;padding:0.28rem 0.65rem;font-size:0.78rem;cursor:pointer;transition:all 0.12s;}
+.out-pill:active{transform:scale(0.94);}
+.pill-grade{font-size:0.62rem;opacity:0.7;font-family:'DM Mono',monospace;}
+.pill-ret{color:var(--green);font-weight:700;margin-left:0.1rem;}
+.empty-state{text-align:center;padding:1.5rem;color:var(--ink3);font-size:0.82rem;}
+.empty-ico{font-size:2rem;display:block;margin-bottom:0.4rem;}
+
+/* grade tab filter */
+.grade-tabs{display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.8rem;}
+.g-tab{padding:0.3rem 0.8rem;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--ink2);font-size:0.72rem;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all 0.12s;font-weight:500;}
+.g-tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+.m-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.75rem 0.9rem;display:flex;align-items:center;gap:0.75rem;margin-bottom:0.45rem;box-shadow:var(--shadow);}
+.m-row.out-row{border-left:3px solid var(--red);}
+.m-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.88rem;font-weight:700;flex-shrink:0;}
+.av-in{background:var(--green-l);color:var(--green);}
+.av-out{background:var(--red-l);color:var(--red);}
+.m-info{flex:1;min-width:0;}
+.m-name{font-size:0.88rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.m-meta{font-size:0.67rem;color:var(--ink3);font-family:'DM Mono',monospace;margin-top:0.1rem;}
+.m-btn{padding:0.35rem 0.75rem;border-radius:8px;border:none;font-size:0.7rem;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;flex-shrink:0;transition:all 0.12s;}
+.mb-out{background:var(--red-l);color:var(--red);}
+.mb-in{background:var(--green-l);color:var(--green);}
+.m-btn:active{transform:scale(0.93);}
+.search-bar{width:100%;padding:0.65rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--ink);font-size:0.85rem;font-family:'Noto Sans JP',sans-serif;margin-bottom:0.75rem;outline:none;box-shadow:var(--shadow);}
+.search-bar:focus{border-color:var(--accent);}
+
+/* ════ ADMIN ════ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:1rem;box-shadow:var(--shadow);}
+.card-title{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;color:var(--accent);margin-bottom:0.8rem;text-transform:uppercase;}
+.field{width:100%;padding:0.7rem 0.9rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--ink);font-size:0.85rem;font-family:'Noto Sans JP',sans-serif;outline:none;transition:border-color 0.15s;margin-bottom:0.5rem;}
+.field:focus{border-color:var(--accent);}
+textarea.field{resize:vertical;min-height:160px;font-size:0.8rem;font-family:'DM Mono',monospace;line-height:1.8;}
+.hint{font-size:0.7rem;color:var(--ink3);margin-bottom:0.7rem;line-height:1.6;}
+.qr-wrap{display:flex;flex-direction:column;align-items:center;padding:1rem;gap:0.8rem;}
+#qrCanvas{border-radius:10px;border:1px solid var(--border);}
+.qr-url{font-family:'DM Mono',monospace;font-size:0.67rem;color:var(--ink2);word-break:break-all;text-align:center;background:var(--surface2);border-radius:8px;padding:0.4rem 0.7rem;width:100%;}
+
+/* CSV upload */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:border-color 0.15s;margin-bottom:0.5rem;}
+.upload-zone:hover{border-color:var(--accent);}
+.upload-zone input{display:none;}
+.upload-ico{font-size:2rem;margin-bottom:0.4rem;}
+.upload-txt{font-size:0.82rem;color:var(--ink2);}
+.upload-sub{font-size:0.7rem;color:var(--ink3);margin-top:0.2rem;}
+
+/* ════ LOG ════ */
+.log-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);}
+.log-toolbar{padding:0.6rem 0.8rem;border-bottom:1px solid var(--border);display:flex;gap:0.5rem;}
+.log-scroll{max-height:65vh;overflow-y:auto;padding:0.4rem 0.6rem;}
+.log-row{font-family:'DM Mono',monospace;font-size:0.68rem;padding:0.35rem 0;border-bottom:1px solid var(--surface2);display:flex;flex-wrap:wrap;gap:0.4rem;align-items:baseline;}
+.lt{color:var(--ink3);flex-shrink:0;}
+.la-out{color:var(--red);font-weight:700;}
+.la-in{color:var(--green);font-weight:700;}
+.la-sys{color:var(--yellow);font-weight:700;}
+.ln{color:var(--ink);}
+.ld{color:var(--ink3);font-size:0.62rem;}
+
+/* ════ TOAST ════ */
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;border-radius:14px;padding:0.8rem 1.5rem;font-size:0.85rem;font-weight:500;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:all 0.25s;z-index:1000;white-space:nowrap;max-width:90vw;text-align:center;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.t-out{background:var(--red);}
+#toast.t-in{background:var(--green);}
+#toast.t-err{background:#555;}
+</style>
+</head>
+<body>
+
+<!-- ══ GATE ══ -->
+<div id="gate">
+  <div class="gate-eyebrow">▸ ATTENDANCE SYSTEM</div>
+  <h1 class="gate-h">出退管理<br>システム</h1>
+  <p class="gate-sub">アクセスコードを入力してください</p>
+  <div class="gate-wrap">
+    <span class="ico">🔑</span>
+    <input type="password" id="gateInput" placeholder="アクセスコード">
+  </div>
+  <button class="gate-btn" onclick="gateCheck()">ログイン</button>
+  <div class="gate-err" id="gateErr"></div>
+  <div class="gate-hint">default: admin123</div>
+</div>
+
+<!-- ══ SHELL ══ -->
+<div id="shell">
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-title">出退管理システム</div>
+      <div class="tb-date" id="tDate"></div>
+    </div>
+    <div class="tb-clock" id="tClock"></div>
+  </div>
+  <div class="nav">
+    <div class="nav-item on"  onclick="go('scan')">📷 スキャン</div>
+    <div class="nav-item"     onclick="go('monitor')">📋 モニター</div>
+    <div class="nav-item"     onclick="go('admin')">⚙️ 管理</div>
+    <div class="nav-item"     onclick="go('log')">📜 ログ</div>
+  </div>
+
+  <!-- SCAN -->
+  <div class="pg on" id="pg-scan">
+    <div class="scan-card">
+      <div class="scan-bar">
+        <div class="scan-dot" id="camDot"></div>
+        <div class="scan-title">QRコードをスキャン</div>
+        <div class="scan-sub" id="camSub">起動中...</div>
+      </div>
+      <div class="cam-box">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="cam-frame">
+          <div class="frame-box">
+            <div class="corner corner-tl"></div><div class="corner corner-tr"></div>
+            <div class="corner corner-bl"></div><div class="corner corner-br"></div>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+        <div class="cam-msg" id="camMsg">
+          <span class="big">📷</span><span>カメラを起動しています...</span>
+        </div>
+      </div>
+      <div class="scan-foot">
+        <button class="btn btn-ghost" onclick="toggleCam()">⏸ 停止/起動</button>
+        <button class="btn btn-primary" onclick="openModal()">👆 手動で選択</button>
+      </div>
+    </div>
+    <div class="card" style="font-size:0.8rem;color:var(--ink2);line-height:1.9;">
+      💡 <strong style="color:var(--ink)">使い方</strong><br>
+      ① QRコードをスキャン（または「手動で選択」をタップ）<br>
+      ② <strong style="color:var(--ink)">学年</strong>を選択する<br>
+      ③ 自分の<strong style="color:var(--ink)">名前</strong>を選択してOK<br>
+      ④ 出退が切り替わる（在席 → 退出 / 退出 → 帰着）
+    </div>
+  </div>
+
+  <!-- MONITOR -->
+  <div class="pg" id="pg-monitor">
+    <div class="stats-row">
+      <div class="stat-tile"><div class="stat-n n-total" id="sTotal">0</div><div class="stat-l">総人数</div></div>
+      <div class="stat-tile"><div class="stat-n n-in"    id="sIn">0</div>   <div class="stat-l">在席中</div></div>
+      <div class="stat-tile"><div class="stat-n n-out"   id="sOut">0</div>  <div class="stat-l">退出中</div></div>
+    </div>
+    <div class="out-box">
+      <div class="sec-head">
+        <div class="sec-label">🔴 退出中のメンバー</div>
+        <div class="chip chip-out" id="outChip">0人</div>
+      </div>
+      <div class="out-pills" id="outPills"></div>
+    </div>
+    <div class="sec-head"><div class="sec-label">全メンバー</div></div>
+    <div class="grade-tabs" id="gradeTabs"></div>
+    <input class="search-bar" type="text" id="monSearch" placeholder="🔍 名前で検索..." oninput="renderMonitor()">
+    <div id="monList"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="pg" id="pg-admin">
+    <div class="card">
+      <div class="card-title">📂 CSVから名簿を読み込む</div>
+      <div class="upload-zone" onclick="document.getElementById('csvFile').click()">
+        <input type="file" id="csvFile" accept=".csv" onchange="loadCSV(this)">
+        <div class="upload-ico">📄</div>
+        <div class="upload-txt">CSVファイルをタップして選択</div>
+        <div class="upload-sub">形式: 学年,名前（1行1名）</div>
+      </div>
+      <div class="hint">※ 文字コード: UTF-8 または Shift-JIS 対応<br>例: <code style="font-family:monospace">1年,山田太郎</code></div>
+    </div>
+    <div class="card">
+      <div class="card-title">✏️ 手動で名簿を編集</div>
+      <textarea class="field" id="listTA" placeholder="学年,名前 の形式で1行1名&#10;例：&#10;1年,佐藤琢磨&#10;1年,菊池裕也&#10;2年,斎藤実子&#10;3年,遠藤悟"></textarea>
+      <div class="hint">※ 既存メンバーの出退状態は保持されます</div>
+      <button class="btn btn-primary btn-full" onclick="saveList()">💾 名簿を保存・反映</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📲 QRコード（このページのURL）</div>
+      <div class="qr-wrap">
+        <canvas id="qrCanvas" width="200" height="200"></canvas>
+        <div class="qr-url" id="qrUrlTxt">—</div>
+      </div>
+      <button class="btn btn-ghost btn-full" onclick="downloadQR()">⬇️ QR画像をダウンロード</button>
+      <div class="hint" style="margin-top:0.5rem;text-align:center">このQRを掲示・配布してください</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔐 アクセスコード変更</div>
+      <input type="password" class="field" id="code1" placeholder="新しいコード">
+      <input type="password" class="field" id="code2" placeholder="確認（再入力）">
+      <button class="btn btn-ghost btn-full" onclick="changeCode()">コードを変更</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🔄 リセット</div>
+      <button class="btn btn-ghost btn-full" onclick="resetAll()" style="margin-bottom:0.5rem">全員を「在席」にリセット</button>
+      <button class="btn btn-red  btn-full" onclick="clearAll()">⚠️ 全データを消去</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="pg" id="pg-log">
+    <div class="log-wrap">
+      <div class="log-toolbar">
+        <button class="btn btn-ghost" onclick="dlLog()">⬇️ CSV出力</button>
+        <button class="btn btn-ghost" onclick="clrLog()">🗑️ 消去</button>
+      </div>
+      <div class="log-scroll" id="logScroll">
+        <div class="empty-state"><span class="empty-ico">📄</span>ログはありません</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOTTOM SHEET MODAL ══ -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal-sheet">
+    <div class="handle"></div>
+
+    <!-- STEP 1: 学年選択 -->
+    <div id="stepGrade">
+      <div class="step-head">
+        <div class="step-title">① 学年を選択してください</div>
+        <button class="step-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="grade-body">
+        <div class="grade-grid" id="gradeGrid"></div>
+      </div>
+    </div>
+
+    <!-- STEP 2: 名前選択 -->
+    <div id="stepName">
+      <div class="name-head">
+        <div class="name-head-row1">
+          <button class="back-btn" onclick="backToGrade()">←</button>
+          <div class="grade-badge" id="gradeBadge"></div>
+          <div style="font-size:0.82rem;font-weight:500;color:var(--ink2)">② 名前を選択</div>
+          <button class="name-close" onclick="closeModal()">✕</button>
+        </div>
+        <input class="modal-search" type="text" id="nameSearch"
+          placeholder="🔍 名前で検索..." oninput="renderRadio()">
+      </div>
+      <div class="name-body" id="nameBody"></div>
+      <div class="modal-foot">
+        <div class="preview-bar" id="previewBar">
+          <span class="pv-name" id="pvName"></span> さんを
+          <span id="pvAction"></span> として登録します
+        </div>
+        <div class="foot-row">
+          <button class="btn btn-ghost" style="flex:1" onclick="backToGrade()">← 学年へ戻る</button>
+          <button class="btn btn-primary" style="flex:2" id="okBtn" onclick="confirmSelect()" disabled>✅ 確定</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let CODE    = localStorage.getItem('atc_code')    || 'admin123';
+let members = JSON.parse(localStorage.getItem('atc_members') || '[]');
+let logs    = JSON.parse(localStorage.getItem('atc_logs')    || '[]');
+
+// members: [{id, grade, name, status:'in'|'out', lastTime}]
+
+let camStream = null, camActive = false, rafId = null, cooldown = false;
+let selectedId = null;   // 選択中メンバーID
+let currentGrade = null; // 選択中学年
+let monFilter = 'all';   // モニターの学年フィルター
+
+// ── grade colors (index → CSS class) ──
+const GRADE_COLORS = ['gc-0','gc-1','gc-2','gc-3','gc-4','gc-5'];
+
+// ══════════════════════════════════════════
+//  GATE
+// ══════════════════════════════════════════
+function gateCheck(){
+  const v = document.getElementById('gateInput').value;
+  if(v === CODE){
+    document.getElementById('gate').style.display = 'none';
+    const s = document.getElementById('shell');
+    s.style.display = 'flex'; s.style.flexDirection = 'column';
+    addLog('SYS','システム','ログイン成功');
+    boot();
+  } else {
+    document.getElementById('gateErr').textContent = 'コードが違います';
+    addLog('SYS','システム','ログイン失敗');
+  }
+}
+document.getElementById('gateInput').addEventListener('keydown', e=>{if(e.key==='Enter')gateCheck();});
+
+function changeCode(){
+  const c1=document.getElementById('code1').value, c2=document.getElementById('code2').value;
+  if(!c1){showToast('コードを入力してください','t-err');return;}
+  if(c1!==c2){showToast('コードが一致しません','t-err');return;}
+  CODE=c1; localStorage.setItem('atc_code',CODE);
+  addLog('SYS','管理者','コード変更');
+  showToast('✅ コードを変更しました');
+  document.getElementById('code1').value='';
+  document.getElementById('code2').value='';
+}
+
+// ══════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════
+function boot(){
+  tick(); setInterval(tick, 1000);
+  if(!members.length) seedSample();
+  syncTA();
+  renderAll();
+  startCam();
+  buildQR();
+}
+
+function tick(){
+  const n=new Date();
+  document.getElementById('tClock').textContent = n.toLocaleTimeString('ja-JP');
+  document.getElementById('tDate').textContent  = n.toLocaleDateString('ja-JP',{year:'numeric',month:'short',day:'numeric',weekday:'short'});
+}
+
+function seedSample(){
+  // サンプルデータ（CSVと同じ構造）
+  const raw = [
+    {grade:'1年',name:'佐藤琢磨'},
+    {grade:'1年',name:'菊池裕也'},
+    {grade:'2年',name:'斎藤実子'},
+    {grade:'2年',name:'富山愛'},
+    {grade:'3年',name:'遠藤悟'},
+    {grade:'3年',name:'瀬川流'},
+  ];
+  members = raw.map((r,i)=>({id:'M'+p3(i+1), grade:r.grade, name:r.name, status:'in', lastTime:null}));
+  saveM();
+}
+
+const p3 = n => String(n).padStart(3,'0');
+
+// ── 学年リスト（順序付き） ──
+function grades(){
+  const seen=[], ordered=[];
+  members.forEach(m=>{ if(!seen.includes(m.grade)){seen.push(m.grade);ordered.push(m.grade);} });
+  return ordered.sort((a,b)=>a.localeCompare(b,'ja',{numeric:true}));
+}
+
+// ══════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════
+const PAGES = ['scan','monitor','admin','log'];
+function go(name){
+  document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('on', PAGES[i]===name));
+  document.querySelectorAll('.pg').forEach(el=>el.classList.remove('on'));
+  document.getElementById('pg-'+name).classList.add('on');
+  if(name==='log')    renderLog();
+  if(name==='monitor'){renderGradeTabs(); renderMonitor();}
+}
+
+// ══════════════════════════════════════════
+//  CAMERA
+// ══════════════════════════════════════════
+async function startCam(){
+  const msg=document.getElementById('camMsg'), dot=document.getElementById('camDot'), sub=document.getElementById('camSub');
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}}});
+    const v = document.getElementById('video');
+    v.srcObject = camStream; await v.play();
+    camActive = true;
+    msg.style.display = 'none';
+    dot.classList.remove('idle'); sub.textContent='待機中';
+    addLog('SYS','カメラ','起動');
+    scanLoop();
+  } catch(e){
+    msg.innerHTML='<span class="big">📷</span><span>カメラ不可<br><small>「手動で選択」をご利用ください</small></span>';
+    dot.classList.add('idle'); sub.textContent='停止';
+    addLog('SYS','カメラ','エラー: '+e.message);
+  }
+}
+
+function stopCam(){
+  if(camStream) camStream.getTracks().forEach(t=>t.stop());
+  camStream=null;
+  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+  camActive=false;
+  document.getElementById('camDot').classList.add('idle');
+  document.getElementById('camSub').textContent='停止';
+  const msg=document.getElementById('camMsg');
+  msg.style.display='flex';
+  msg.innerHTML='<span class="big">⏸</span><span>カメラ停止中<br><small>「停止/起動」で再開できます</small></span>';
+  addLog('SYS','カメラ','停止');
+}
+
+function toggleCam(){ camActive ? stopCam() : startCam(); }
+
+function scanLoop(){
+  const video=document.getElementById('video'), canvas=document.getElementById('canvas'), ctx=canvas.getContext('2d');
+  const tick=()=>{
+    if(!camActive) return;
+    if(video.readyState===video.HAVE_ENOUGH_DATA){
+      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+      ctx.drawImage(video,0,0);
+      const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+      const qr  = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+      if(qr && !cooldown){
+        cooldown=true; setTimeout(()=>cooldown=false, 3500);
+        addLog('SYS','QR読取', qr.data.substring(0,80));
+        openModal();
+      }
+    }
+    rafId = requestAnimationFrame(tick);
+  };
+  rafId = requestAnimationFrame(tick);
+}
+
+// ══════════════════════════════════════════
+//  MODAL — 2 STEP
+// ══════════════════════════════════════════
+function openModal(){
+  selectedId = null; currentGrade = null;
+  showStep('grade');
+  renderGradeGrid();
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('show');
+  selectedId = null; currentGrade = null;
+}
+
+function showStep(step){
+  document.getElementById('stepGrade').style.display = step==='grade' ? 'flex' : 'none';
+  document.getElementById('stepName').style.display  = step==='name'  ? 'flex' : 'none';
+}
+
+function backToGrade(){
+  selectedId = null; currentGrade = null;
+  showStep('grade');
+  renderGradeGrid();
+}
+
+/* ── STEP 1: grade grid ── */
+function renderGradeGrid(){
+  const gs = grades();
+  const grid = document.getElementById('gradeGrid');
+  if(!gs.length){
+    grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><span class="empty-ico">📋</span>名簿がありません<br>管理タブで登録してください</div>';
+    return;
+  }
+  grid.innerHTML = gs.map((g,i)=>{
+    const cnt   = members.filter(m=>m.grade===g).length;
+    const outCnt= members.filter(m=>m.grade===g&&m.status==='out').length;
+    const cls   = GRADE_COLORS[i % GRADE_COLORS.length];
+    return `<button class="grade-btn ${cls}" onclick="selectGrade('${g}')">
+      <div class="grade-name">${g}</div>
+      <div class="grade-count">${cnt}名${outCnt?` / 退出${outCnt}名`:''}</div>
+    </button>`;
+  }).join('');
+}
+
+function selectGrade(g){
+  currentGrade = g;
+  // badge color
+  const gs = grades();
+  const idx = gs.indexOf(g);
+  const cls = GRADE_COLORS[idx % GRADE_COLORS.length];
+  const badge = document.getElementById('gradeBadge');
+  badge.textContent = g;
+  badge.className = 'grade-badge';
+  // Map cls to bg/color
+  const colorMap={
+    'gc-0':{bg:'var(--g1)',c:'#fff'},'gc-1':{bg:'var(--g2)',c:'#fff'},
+    'gc-2':{bg:'var(--g3)',c:'#fff'},'gc-3':{bg:'var(--g4)',c:'#fff'},
+    'gc-4':{bg:'var(--g5)',c:'#fff'},'gc-5':{bg:'var(--g6)',c:'#fff'},
+  };
+  const cm = colorMap[cls]||{bg:'var(--accent)',c:'#fff'};
+  badge.style.background = cm.bg; badge.style.color = cm.c;
+
+  document.getElementById('nameSearch').value='';
+  document.getElementById('previewBar').classList.remove('show');
+  document.getElementById('okBtn').disabled = true;
+  selectedId = null;
+  showStep('name');
+  renderRadio();
+  setTimeout(()=>document.getElementById('nameSearch').focus(), 320);
+}
+
+/* ── STEP 2: name radio list ── */
+function renderRadio(){
+  const q = document.getElementById('nameSearch').value.trim().toLowerCase();
+  let list = members.filter(m => m.grade === currentGrade);
+  if(q) list = list.filter(m => m.name.toLowerCase().includes(q));
+  // sort: out first, then name
+  list.sort((a,b)=>(a.status==='out'?0:1)-(b.status==='out'?0:1)||a.name.localeCompare(b.name,'ja'));
+
+  const body = document.getElementById('nameBody');
+  if(!list.length){
+    body.innerHTML='<div class="empty-state"><span class="empty-ico">🔍</span>見つかりません</div>';
+    return;
+  }
+  body.innerHTML = list.map(m=>{
+    const isOut = m.status==='out', sel = m.id===selectedId;
+    const metaTxt = isOut
+      ? `退出中 → 確定で「帰着」${m.lastTime?' ('+m.lastTime+')':''}`
+      : `在席中 → 確定で「退出」${m.lastTime?' ('+m.lastTime+')':''}`;
+    return `<div class="radio-item${isOut?' out-item':''}${sel?' selected':''}" onclick="selectMember('${m.id}')">
+      <div class="radio-circle"></div>
+      <div class="radio-info">
+        <div class="radio-name">${m.name}</div>
+        <div class="radio-meta ${isOut?'meta-out':'meta-in'}">${metaTxt}</div>
+      </div>
+      <div class="radio-badge ${isOut?'badge-out':'badge-in'}">${isOut?'退出中':'在席中'}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectMember(id){
+  selectedId = id;
+  const m = members.find(x=>x.id===id); if(!m) return;
+  document.getElementById('pvName').textContent = m.name;
+  document.getElementById('pvAction').innerHTML = m.status==='in'
+    ? '<span class="pv-out">退出</span>'
+    : '<span class="pv-in">帰着（在席）</span>';
+  document.getElementById('previewBar').classList.add('show');
+  document.getElementById('okBtn').disabled = false;
+  renderRadio();
+}
+
+function confirmSelect(){
+  if(!selectedId) return;
+  const m = members.find(x=>x.id===selectedId); if(!m) return;
+  const t = new Date().toLocaleTimeString('ja-JP');
+  if(m.status==='in'){
+    m.status='out'; m.lastTime=t;
+    addLog('OUT', m.name, m.grade+' 退出 '+t);
+    showToast('🔴 '+m.name+' さんが退出しました','t-out');
+    vib([200]);
+  } else {
+    m.status='in'; m.lastTime=t;
+    addLog('IN',  m.name, m.grade+' 帰着 '+t);
+    showToast('🟢 '+m.name+' さんが戻りました','t-in');
+    vib([80,40,80]);
+  }
+  saveM(); renderAll(); closeModal();
+}
+
+const vib = p => { if(navigator.vibrate) navigator.vibrate(p); };
+
+// ══════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════
+function renderAll(){ updateStats(); renderGradeTabs(); renderMonitor(); }
+
+function updateStats(){
+  const total=members.length, out=members.filter(m=>m.status==='out').length;
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sIn').textContent    = total-out;
+  document.getElementById('sOut').textContent   = out;
+}
+
+function renderGradeTabs(){
+  const gs = grades();
+  const tabs = document.getElementById('gradeTabs');
+  tabs.innerHTML =
+    `<button class="g-tab${monFilter==='all'?' on':''}" onclick="setMonFilter('all',this)">全員</button>`+
+    gs.map(g=>`<button class="g-tab${monFilter===g?' on':''}" onclick="setMonFilter('${g}',this)">${g}</button>`).join('');
+}
+
+function setMonFilter(f, btn){
+  monFilter = f;
+  document.querySelectorAll('.g-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderMonitor();
+}
+
+function renderMonitor(){
+  updateStats();
+  const outM = members.filter(m=>m.status==='out');
+  document.getElementById('outChip').textContent = outM.length+'人';
+
+  // out pills
+  const pillsEl = document.getElementById('outPills');
+  if(!outM.length){
+    pillsEl.innerHTML='<div style="font-size:0.78rem;color:var(--green);padding:0.3rem 0">全員在席中 ✅</div>';
+  } else {
+    pillsEl.innerHTML = outM.map(m=>
+      `<span class="out-pill" onclick="quickReturn('${m.id}')">
+        <span class="pill-grade">${m.grade}</span>
+        ${m.name}
+        <span class="pill-ret">↩</span>
+      </span>`
+    ).join('');
+  }
+
+  // full list
+  const q = (document.getElementById('monSearch')||{value:''}).value.toLowerCase();
+  let list = members;
+  if(monFilter!=='all') list = list.filter(m=>m.grade===monFilter);
+  if(q) list = list.filter(m=>m.name.toLowerCase().includes(q)||m.grade.toLowerCase().includes(q));
+  list = [...list].sort((a,b)=>
+    (a.status==='out'?0:1)-(b.status==='out'?0:1) ||
+    a.grade.localeCompare(b.grade,'ja',{numeric:true}) ||
+    a.name.localeCompare(b.name,'ja')
+  );
+
+  document.getElementById('monList').innerHTML = !list.length
+    ? '<div class="empty-state"><span class="empty-ico">🔍</span>見つかりません</div>'
+    : list.map(m=>{
+        const o=m.status==='out';
+        return `<div class="m-row${o?' out-row':''}">
+          <div class="m-avatar ${o?'av-out':'av-in'}">${m.name.charAt(0)}</div>
+          <div class="m-info">
+            <div class="m-name">${m.name}</div>
+            <div class="m-meta">${m.grade}　${m.lastTime?(o?'退出: ':'帰着: ')+m.lastTime:'—'}</div>
+          </div>
+          <button class="m-btn ${o?'mb-in':'mb-out'}" onclick="manualToggle('${m.id}')">${o?'↩ 帰着':'→ 退出'}</button>
+        </div>`;
+      }).join('');
+}
+
+function quickReturn(id){
+  const m=members.find(x=>x.id===id); if(!m||m.status!=='out') return;
+  const t=new Date().toLocaleTimeString('ja-JP');
+  m.status='in'; m.lastTime=t;
+  addLog('IN',m.name,m.grade+' 帰着(ピル) '+t);
+  showToast('🟢 '+m.name+' さんが戻りました','t-in');
+  saveM(); renderAll();
+}
+
+function manualToggle(id){
+  const m=members.find(x=>x.id===id); if(!m) return;
+  const t=new Date().toLocaleTimeString('ja-JP');
+  if(m.status==='in'){m.status='out';m.lastTime=t;addLog('OUT',m.name,m.grade+' 手動退出 '+t);showToast('🔴 '+m.name+' 退出','t-out');}
+  else               {m.status='in'; m.lastTime=t;addLog('IN', m.name,m.grade+' 手動帰着 '+t);showToast('🟢 '+m.name+' 帰着','t-in');}
+  saveM(); renderAll();
+}
+
+// ══════════════════════════════════════════
+//  ADMIN — CSV LOAD
+// ══════════════════════════════════════════
+function loadCSV(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+
+  reader.onload = e=>{
+    let text = e.target.result;
+    // Detect Shift-JIS by checking for BOM or fallback decode
+    if(typeof text === 'string' && text.includes('�')){
+      // Re-read as binary and decode manually
+      readAsShiftJIS(file);
+      return;
+    }
+    parseCSVText(text, file.name);
+  };
+
+  // Try UTF-8 first; if it fails we try Shift-JIS
+  reader.onerror = ()=>{ readAsShiftJIS(file); };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function readAsShiftJIS(file){
+  const r2 = new FileReader();
+  r2.onload = e=>{
+    const bytes = new Uint8Array(e.target.result);
+    let text='';
+    try{
+      const td = new TextDecoder('shift-jis');
+      text = td.decode(bytes);
+    }catch(err){
+      // fallback: try Windows-31J
+      try{ text = new TextDecoder('windows-31j').decode(bytes); }
+      catch(e2){ showToast('文字コードの読み取りに失敗しました','t-err'); return; }
+    }
+    parseCSVText(text, file.name);
+  };
+  r2.readAsArrayBuffer(file);
+}
+
+function parseCSVText(text, filename){
+  // Remove BOM
+  text = text.replace(/^\uFEFF/,'');
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+  const parsed = [];
+  lines.forEach((line,i)=>{
+    // Skip header if it contains '学年' or '年,名'
+    if(i===0 && (line.includes('学年') || line.startsWith('学年'))) return;
+    const parts = line.split(',');
+    if(parts.length >= 2){
+      const grade = parts[0].trim();
+      const name  = parts[1].trim();
+      if(grade && name) parsed.push({grade, name});
+    }
+  });
+
+  if(!parsed.length){ showToast('有効なデータが見つかりません','t-err'); return; }
+
+  // Preserve existing status
+  const map={}; members.forEach(m=>map[m.grade+'__'+m.name]=m);
+  members = parsed.map((r,i)=>{
+    const key = r.grade+'__'+r.name;
+    if(map[key]) return map[key];
+    return {id:'M'+p3(i+1), grade:r.grade, name:r.name, status:'in', lastTime:null};
+  });
+  members.forEach((m,i)=>m.id='M'+p3(i+1));
+
+  saveM(); syncTA(); renderAll();
+  addLog('SYS','管理者',`CSV読込: ${filename} ${parsed.length}名`);
+  showToast(`✅ ${parsed.length}名を読み込みました（${[...new Set(parsed.map(r=>r.grade))].join('・')}）`);
+  document.getElementById('csvFile').value='';
+}
+
+// ── Manual textarea ──
+function syncTA(){
+  document.getElementById('listTA').value = members.map(m=>`${m.grade},${m.name}`).join('\n');
+}
+
+function saveList(){
+  const lines = document.getElementById('listTA').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const parsed=[];
+  lines.forEach(line=>{
+    const p=line.split(',');
+    if(p.length>=2){const grade=p[0].trim(),name=p[1].trim();if(grade&&name)parsed.push({grade,name});}
+  });
+  if(!parsed.length){showToast('データを入力してください','t-err');return;}
+  const map={}; members.forEach(m=>map[m.grade+'__'+m.name]=m);
+  members = parsed.map((r,i)=>{
+    const key=r.grade+'__'+r.name;
+    if(map[key]) return map[key];
+    return {id:'M'+p3(i+1),grade:r.grade,name:r.name,status:'in',lastTime:null};
+  });
+  members.forEach((m,i)=>m.id='M'+p3(i+1));
+  saveM(); syncTA(); renderAll();
+  addLog('SYS','管理者','手動名簿保存 '+parsed.length+'名');
+  showToast('✅ '+parsed.length+'名を保存しました');
+}
+
+function resetAll(){
+  if(!confirm('全員を「在席」にリセットしますか？')) return;
+  members.forEach(m=>{m.status='in';m.lastTime=null;});
+  saveM(); renderAll();
+  addLog('SYS','管理者','全員リセット');
+  showToast('✅ リセットしました');
+}
+
+function clearAll(){
+  if(!confirm('全データを消去しますか？')) return;
+  members=[]; logs=[]; saveM(); saveLogs(); syncTA(); renderAll(); renderLog();
+  showToast('🗑️ 消去しました');
+}
+
+// ══════════════════════════════════════════
+//  QR CODE
+// ══════════════════════════════════════════
+function buildQR(){
+  const url = location.href.split('?')[0].split('#')[0];
+  document.getElementById('qrUrlTxt').textContent = url;
+  const tmp = document.createElement('div'); document.body.appendChild(tmp);
+  new QRCode(tmp,{text:url,width:200,height:200,colorDark:'#1a1916',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  setTimeout(()=>{
+    const src = tmp.querySelector('canvas')||tmp.querySelector('img');
+    if(src){
+      const cvs=document.getElementById('qrCanvas'), ctx=cvs.getContext('2d');
+      if(src.tagName==='CANVAS'){ctx.drawImage(src,0,0,200,200);}
+      else{const i=new Image();i.onload=()=>ctx.drawImage(i,0,0,200,200);i.src=src.src;}
+    }
+    document.body.removeChild(tmp);
+  },400);
+}
+
+function downloadQR(){
+  const a=document.createElement('a');
+  a.download='attendance_qr.png';
+  a.href=document.getElementById('qrCanvas').toDataURL('image/png');
+  a.click();
+  addLog('SYS','システム','QRダウンロード');
+}
+
+// ══════════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════════
+function addLog(action,name,detail){
+  const n=new Date();
+  logs.push({ts:n.getTime(),time:n.toLocaleString('ja-JP'),action,name,detail:detail||''});
+  if(logs.length>2000) logs=logs.slice(-2000);
+  saveLogs();
+  if(document.getElementById('pg-log').classList.contains('on')) renderLog();
+}
+
+function renderLog(){
+  const el=document.getElementById('logScroll');
+  if(!logs.length){el.innerHTML='<div class="empty-state"><span class="empty-ico">📄</span>ログはありません</div>';return;}
+  el.innerHTML=[...logs].reverse().map(l=>`<div class="log-row">
+    <span class="lt">${l.time}</span>
+    <span class="${l.action==='OUT'?'la-out':l.action==='IN'?'la-in':'la-sys'}">[${l.action}]</span>
+    <span class="ln">${l.name}</span>
+    <span class="ld">${l.detail}</span>
+  </div>`).join('');
+}
+
+function dlLog(){
+  const csv='\uFEFF日時,アクション,名前,詳細\n'+logs.map(l=>`"${l.time}","${l.action}","${l.name}","${l.detail}"`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='attendance_log_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  addLog('SYS','システム','ログCSV出力');
+}
+
+function clrLog(){
+  if(!confirm('ログを全て消去しますか？')) return;
+  logs=[]; saveLogs(); renderLog();
+}
+
+// ══════════════════════════════════════════
+//  PERSIST
+// ══════════════════════════════════════════
+function saveM()   { localStorage.setItem('atc_members', JSON.stringify(members)); }
+function saveLogs(){ localStorage.setItem('atc_logs',    JSON.stringify(logs));    }
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+let toastT=null;
+function showToast(msg,cls=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show '+(cls||'');
+  if(toastT) clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>
