@@ -871,10 +871,15 @@ function startHeartbeat() {
   clearInterval(heartbeatTimer);
   heartbeatTimer = setInterval(() => {
     const s = getActiveSession();
-    if (s && s.id === MY_SESSION_ID) {
+    if (!s) {
+      // セッションが存在しない＝正常にreleaseされた状態。ハートビート停止のみ
+      clearInterval(heartbeatTimer);
+      return;
+    }
+    if (s.id === MY_SESSION_ID) {
       claimSession(); // タイムスタンプ更新
     } else {
-      // 別端末に奪われた場合は強制ロック画面に戻す
+      // 別端末に奪われた場合のみ強制ロック画面に戻す
       forceReturnToLock('別の端末にセッションが移行しました');
     }
   }, SESSION_HEARTBEAT);
@@ -1160,24 +1165,20 @@ function showScreen(id) {
 }
 
 function goBack() {
-  if (operationDone) {
-    // 操作済み → セッション解放してロック画面へ
-    releaseSession();
-    operationDone = false;
-    operatedKey   = null;
-    const digits = document.querySelectorAll('.code-digit');
-    digits.forEach(d => { d.value = ''; d.disabled = false; });
-    document.getElementById('lockoutMsg')?.classList.remove('show');
-    const inputWrap = document.getElementById('codeInputWrap');
-    if (inputWrap) { inputWrap.style.opacity = ''; inputWrap.style.pointerEvents = ''; }
-    const btn = document.getElementById('submitBtn');
-    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
-    document.getElementById('lockIcon').textContent = '🔐';
-    showScreen('lockScreen');
-    setTimeout(() => digits[0]?.focus(), 100);
-  } else {
-    showGradeSelect();
-  }
+  // 操作済み・未操作に関わらずセッションを解放してロック画面へ戻す
+  releaseSession();
+  operationDone = false;
+  operatedKey   = null;
+  const digits = document.querySelectorAll('.code-digit');
+  digits.forEach(d => { d.value = ''; d.disabled = false; });
+  document.getElementById('lockoutMsg')?.classList.remove('show');
+  const inputWrap = document.getElementById('codeInputWrap');
+  if (inputWrap) { inputWrap.style.opacity = ''; inputWrap.style.pointerEvents = ''; }
+  const btn = document.getElementById('submitBtn');
+  if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  document.getElementById('lockIcon').textContent = '🔐';
+  showScreen('lockScreen');
+  setTimeout(() => digits[0]?.focus(), 100);
 }
 
 function showGradeSelect() {
