@@ -267,38 +267,34 @@
     box-shadow:0 0 40px rgba(0,212,255,0.15), 0 25px 50px rgba(0,0,0,0.5);
     animation: fadeIn 0.5s ease;
   ">
-    <div style="font-size:48px; margin-bottom:16px; filter:drop-shadow(0 0 10px var(--accent))">🛡️</div>
+    <div id="adminLockIcon" style="font-size:48px; margin-bottom:16px; filter:drop-shadow(0 0 10px var(--accent))">🛡️</div>
     <div style="font-size:22px; font-weight:700; color:var(--accent); margin-bottom:8px; letter-spacing:0.05em;">管理者モニター</div>
     <div style="font-size:13px; color:var(--text2); margin-bottom:32px;">管理者コードを入力してください</div>
-    <div style="display:flex; gap:12px; justify-content:center; margin-bottom:24px;">
-      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" autofocus style="
-        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
-        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
-        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
-      ">
-      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="
-        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
-        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
-        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
-      ">
-      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="
-        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
-        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
-        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
-      ">
-      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="
-        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
-        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
-        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
-      ">
+    <div id="adminInputWrap" style="display:flex; gap:12px; justify-content:center; margin-bottom:24px;">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" autofocus style="width:56px;height:68px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;font-size:28px;font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--accent);text-align:center;outline:none;transition:all 0.2s;">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="width:56px;height:68px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;font-size:28px;font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--accent);text-align:center;outline:none;transition:all 0.2s;">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="width:56px;height:68px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;font-size:28px;font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--accent);text-align:center;outline:none;transition:all 0.2s;">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="width:56px;height:68px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;font-size:28px;font-family:'Share Tech Mono',monospace;font-weight:700;color:var(--accent);text-align:center;outline:none;transition:all 0.2s;">
     </div>
-    <button onclick="checkAdminCode()" style="
+    <button id="adminSubmitBtn" onclick="checkAdminCode()" style="
       width:100%; padding:14px; background:linear-gradient(135deg,#7c3aed,var(--accent));
       border:none; border-radius:12px; color:white; font-size:16px; font-weight:700;
       font-family:'Noto Sans JP',sans-serif; cursor:pointer; transition:all 0.3s; letter-spacing:0.05em;
     ">モニターを開く →</button>
-    <div id="adminError" style="color:#ef4444; font-size:13px; margin-top:12px; display:none;">
-      ❌ 管理者コードが正しくありません
+    <div id="adminError" style="color:#ef4444; font-size:13px; margin-top:12px; display:none;"></div>
+    <!-- 試行回数インジケーター -->
+    <div id="adminAttemptIndicator" style="display:flex;justify-content:center;gap:6px;margin-top:14px;">
+      <div class="adot" id="adot0" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background 0.3s;"></div>
+      <div class="adot" id="adot1" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background 0.3s;"></div>
+      <div class="adot" id="adot2" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background 0.3s;"></div>
+      <div class="adot" id="adot3" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background 0.3s;"></div>
+      <div class="adot" id="adot4" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:background 0.3s;"></div>
+    </div>
+    <!-- ロックアウト表示 -->
+    <div id="adminLockoutMsg" style="display:none;margin-top:16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:14px 16px;">
+      <div style="color:#ef4444;font-size:14px;font-weight:700;margin-bottom:6px;">🔒 アクセスがロックされました</div>
+      <div id="adminLockoutTimer" style="color:#f87171;font-size:28px;font-weight:900;font-family:'Share Tech Mono',monospace;letter-spacing:0.1em;">0:00</div>
+      <div style="color:#94a3b8;font-size:11px;margin-top:4px;">時間経過後に再試行できます</div>
     </div>
   </div>
 </div>
@@ -388,10 +384,85 @@ function loadData() {
   renderAll();
 }
 
+// ===== BRUTE FORCE PROTECTION (管理者用) =====
+const BF_MG_KEY        = 'bf_manage';
+const MG_MAX_ATTEMPTS  = 5;
+const MG_LOCKOUT_DURATIONS = [0, 0, 0, 0, 0, 30, 60, 300, 300, 300];
+
+function getMgBfState() {
+  try {
+    const s = localStorage.getItem(BF_MG_KEY);
+    return s ? JSON.parse(s) : { attempts: 0, lockedUntil: 0 };
+  } catch(e) { return { attempts: 0, lockedUntil: 0 }; }
+}
+function saveMgBfState(state) {
+  try { localStorage.setItem(BF_MG_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+let mgLockoutInterval = null;
+
+function updateAdminDots(attempts) {
+  for (let i = 0; i < 5; i++) {
+    const dot = document.getElementById(`adot${i}`);
+    if (!dot) continue;
+    dot.style.background = i < attempts
+      ? (i >= MG_MAX_ATTEMPTS - 2 ? '#f59e0b' : '#ef4444')
+      : 'rgba(255,255,255,0.15)';
+  }
+}
+
+function startAdminLockout(until) {
+  const digits    = document.querySelectorAll('.admin-digit');
+  const btn       = document.getElementById('adminSubmitBtn');
+  const lockMsg   = document.getElementById('adminLockoutMsg');
+  const timerEl   = document.getElementById('adminLockoutTimer');
+  const inputWrap = document.getElementById('adminInputWrap');
+  const lockIcon  = document.getElementById('adminLockIcon');
+
+  lockMsg.style.display = 'block';
+  inputWrap.style.opacity = '0.3';
+  inputWrap.style.pointerEvents = 'none';
+  btn.disabled = true;
+  btn.style.opacity = '0.3';
+  lockIcon.textContent = '🔒';
+  digits.forEach(d => { d.value = ''; d.disabled = true; });
+
+  if (mgLockoutInterval) clearInterval(mgLockoutInterval);
+  mgLockoutInterval = setInterval(() => {
+    const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    timerEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    if (remaining <= 0) {
+      clearInterval(mgLockoutInterval);
+      lockMsg.style.display = 'none';
+      inputWrap.style.opacity = '';
+      inputWrap.style.pointerEvents = '';
+      btn.disabled = false;
+      btn.style.opacity = '';
+      lockIcon.textContent = '🛡️';
+      digits.forEach(d => { d.disabled = false; });
+      digits[0].focus();
+    }
+  }, 500);
+}
+
+function checkAdminLockoutOnLoad() {
+  const state = getMgBfState();
+  updateAdminDots(state.attempts);
+  if (state.lockedUntil > Date.now()) startAdminLockout(state.lockedUntil);
+}
+
 function checkAdminCode() {
-  const digits = document.querySelectorAll('.admin-digit');
+  const state = getMgBfState();
+  if (state.lockedUntil > Date.now()) return;
+
+  const digits  = document.querySelectorAll('.admin-digit');
   const entered = Array.from(digits).map(d => d.value).join('');
+  const errEl   = document.getElementById('adminError');
+
   if (entered === ADMIN_CODE) {
+    localStorage.removeItem(BF_MG_KEY);
     isUnlocked = true;
     document.getElementById('adminLock').style.display = 'none';
     document.getElementById('monitorContent').style.display = 'block';
@@ -403,16 +474,25 @@ function checkAdminCode() {
       } catch(e) {}
     }, 5000);
   } else {
-    digits.forEach(d => {
-      d.value = '';
-      d.style.borderColor = '#ef4444';
-    });
-    document.getElementById('adminError').style.display = 'block';
-    setTimeout(() => {
-      digits.forEach(d => d.style.borderColor = '');
-      document.getElementById('adminError').style.display = 'none';
-      digits[0].focus();
-    }, 1500);
+    state.attempts += 1;
+    if (state.attempts >= MG_MAX_ATTEMPTS) {
+      const durIdx = Math.min(state.attempts, MG_LOCKOUT_DURATIONS.length - 1);
+      state.lockedUntil = Date.now() + MG_LOCKOUT_DURATIONS[durIdx] * 1000;
+      saveMgBfState(state);
+      updateAdminDots(state.attempts);
+      startAdminLockout(state.lockedUntil);
+    } else {
+      saveMgBfState(state);
+      updateAdminDots(state.attempts);
+      errEl.textContent = `❌ コードが違います（残り ${MG_MAX_ATTEMPTS - state.attempts} 回）`;
+      errEl.style.display = 'block';
+      digits.forEach(d => { d.value = ''; d.style.borderColor = '#ef4444'; });
+      setTimeout(() => {
+        digits.forEach(d => d.style.borderColor = '');
+        errEl.style.display = 'none';
+        digits[0].focus();
+      }, 1500);
+    }
   }
 }
 
@@ -509,6 +589,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 setupAdminInputs();
+checkAdminLockoutOnLoad(); // ページ読み込み時にロック状態を復元
 </script>
 </body>
 </html>

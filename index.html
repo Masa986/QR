@@ -131,6 +131,50 @@
   }
   .error-msg.show { display: block; }
 
+  .lockout-msg {
+    display: none;
+    margin-top: 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .lockout-msg.show { display: block; }
+  .lockout-title {
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .lockout-timer {
+    color: #f87171;
+    font-size: 28px;
+    font-weight: 900;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+  .lockout-sub {
+    color: #94a3b8;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .attempt-indicator {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .attempt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.3s;
+  }
+  .attempt-dot.used { background: #ef4444; }
+  .attempt-dot.warn { background: #f59e0b; }
+
   /* ===== GRADE SELECT SCREEN ===== */
   #gradeScreen {
     padding: 32px 20px;
@@ -635,7 +679,7 @@
 <!-- LOCK SCREEN -->
 <div id="lockScreen" class="screen active">
   <div class="lock-card">
-    <div class="lock-icon">🔐</div>
+    <div class="lock-icon" id="lockIcon">🔐</div>
     <div class="lock-title">出退室管理システム</div>
     <div class="lock-sub">アクセスコードを入力してください</div>
     <div class="code-input-wrap" id="codeInputWrap">
@@ -644,8 +688,22 @@
       <input class="code-digit" type="text" inputmode="numeric" maxlength="1" id="d2">
       <input class="code-digit" type="text" inputmode="numeric" maxlength="1" id="d3">
     </div>
-    <button class="btn-primary" onclick="checkCode()">入室する →</button>
+    <button class="btn-primary" id="submitBtn" onclick="checkCode()">入室する →</button>
     <div class="error-msg" id="errorMsg">❌ アクセスコードが正しくありません</div>
+    <!-- 試行回数インジケーター -->
+    <div class="attempt-indicator" id="attemptIndicator">
+      <div class="attempt-dot" id="dot0"></div>
+      <div class="attempt-dot" id="dot1"></div>
+      <div class="attempt-dot" id="dot2"></div>
+      <div class="attempt-dot" id="dot3"></div>
+      <div class="attempt-dot" id="dot4"></div>
+    </div>
+    <!-- ロックアウト表示 -->
+    <div class="lockout-msg" id="lockoutMsg">
+      <div class="lockout-title">🔒 アクセスがロックされました</div>
+      <div class="lockout-timer" id="lockoutTimer">0:00</div>
+      <div class="lockout-sub">時間経過後に再試行できます</div>
+    </div>
   </div>
 </div>
 
@@ -662,7 +720,7 @@
 <!-- ATTENDANCE SCREEN -->
 <div id="attendScreen" class="screen">
   <div class="screen-header">
-    <button class="back-btn" onclick="showGradeSelect()">← 戻る</button>
+    <button class="back-btn" onclick="goBack()">← 戻る</button>
     <div>
       <div class="screen-title" id="attendTitle">学年</div>
       <div class="screen-subtitle" id="attendSubtitle"></div>
@@ -701,6 +759,7 @@ let status = {};
 let currentGrade = null;
 let monitorInterval = null;
 let clockInterval = null;
+let operationDone = false; // 入室・退室操作が行われたかどうか
 
 // ===== ★ 設定エリア ==========================================
 // AC_US.txt の内容をそのままここに貼り付けてください（一般ユーザー用コード）
@@ -754,6 +813,87 @@ function parseCsv(text) {
   }
 }
 
+// ===== BRUTE FORCE PROTECTION =====
+const BF_KEY       = 'bf_user';   // localStorage キー
+const MAX_ATTEMPTS = 5;           // ロックまでの失敗回数
+// ロック時間テーブル（失敗累積回数 → 秒）
+const LOCKOUT_DURATIONS = [0, 0, 0, 0, 0, 30, 60, 300, 300, 300];
+
+function getBfState() {
+  try {
+    const s = localStorage.getItem(BF_KEY);
+    return s ? JSON.parse(s) : { attempts: 0, lockedUntil: 0 };
+  } catch(e) { return { attempts: 0, lockedUntil: 0 }; }
+}
+function saveBfState(state) {
+  try { localStorage.setItem(BF_KEY, JSON.stringify(state)); } catch(e) {}
+}
+function resetBfState() {
+  localStorage.removeItem(BF_KEY);
+  updateAttemptDots(0);
+}
+
+let lockoutCountdownInterval = null;
+
+function updateAttemptDots(attempts) {
+  for (let i = 0; i < 5; i++) {
+    const dot = document.getElementById(`dot${i}`);
+    if (!dot) continue;
+    dot.className = 'attempt-dot';
+    if (i < attempts) {
+      dot.classList.add(attempts >= MAX_ATTEMPTS - 1 ? 'used' : (i >= MAX_ATTEMPTS - 2 ? 'warn' : 'used'));
+    }
+  }
+}
+
+function startLockoutCountdown(until) {
+  const digits   = document.querySelectorAll('.code-digit');
+  const btn      = document.getElementById('submitBtn');
+  const lockMsg  = document.getElementById('lockoutMsg');
+  const timerEl  = document.getElementById('lockoutTimer');
+  const inputWrap = document.getElementById('codeInputWrap');
+  const lockIcon = document.getElementById('lockIcon');
+
+  lockMsg.classList.add('show');
+  inputWrap.style.opacity = '0.3';
+  inputWrap.style.pointerEvents = 'none';
+  btn.disabled = true;
+  btn.style.opacity = '0.3';
+  lockIcon.textContent = '🔒';
+  digits.forEach(d => { d.value = ''; d.disabled = true; });
+
+  if (lockoutCountdownInterval) clearInterval(lockoutCountdownInterval);
+  lockoutCountdownInterval = setInterval(() => {
+    const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    timerEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    if (remaining <= 0) {
+      clearInterval(lockoutCountdownInterval);
+      // ロック解除
+      lockMsg.classList.remove('show');
+      inputWrap.style.opacity = '';
+      inputWrap.style.pointerEvents = '';
+      btn.disabled = false;
+      btn.style.opacity = '';
+      lockIcon.textContent = '🔐';
+      digits.forEach(d => { d.disabled = false; });
+      digits[0].focus();
+      // attemptsはリセットせず引き継ぐ（累積ロック）
+    }
+  }, 500);
+}
+
+function checkLockoutOnLoad() {
+  const state = getBfState();
+  if (state.lockedUntil > Date.now()) {
+    updateAttemptDots(state.attempts);
+    startLockoutCountdown(state.lockedUntil);
+  } else {
+    updateAttemptDots(state.attempts);
+  }
+}
+
 // ===== ACCESS CODE =====
 function setupCodeInputs() {
   const digits = document.querySelectorAll('.code-digit');
@@ -778,26 +918,48 @@ function setupCodeInputs() {
 }
 
 function checkCode() {
-  const digits = document.querySelectorAll('.code-digit');
+  // ロック中は受け付けない
+  const state = getBfState();
+  if (state.lockedUntil > Date.now()) return;
+
+  const digits  = document.querySelectorAll('.code-digit');
   const entered = Array.from(digits).map(d => d.value).join('');
+
   if (entered === accessCode) {
+    resetBfState();
     showGradeSelect();
   } else {
+    state.attempts += 1;
     const err = document.getElementById('errorMsg');
-    err.classList.add('show');
-    digits.forEach(d => {
-      d.value = '';
-      d.style.borderColor = '#ef4444';
-      d.style.animation = 'shake 0.3s ease';
-    });
-    setTimeout(() => {
+
+    if (state.attempts >= MAX_ATTEMPTS) {
+      // ロック発動
+      const durIdx   = Math.min(state.attempts, LOCKOUT_DURATIONS.length - 1);
+      const durSec   = LOCKOUT_DURATIONS[durIdx];
+      state.lockedUntil = Date.now() + durSec * 1000;
+      saveBfState(state);
+      updateAttemptDots(state.attempts);
+      startLockoutCountdown(state.lockedUntil);
+    } else {
+      // 失敗だが未ロック
+      saveBfState(state);
+      updateAttemptDots(state.attempts);
+      err.textContent = `❌ コードが違います（残り ${MAX_ATTEMPTS - state.attempts} 回）`;
+      err.classList.add('show');
       digits.forEach(d => {
-        d.style.borderColor = '';
-        d.style.animation = '';
+        d.value = '';
+        d.style.borderColor = '#ef4444';
+        d.style.animation = 'shake 0.3s ease';
       });
-      err.classList.remove('show');
-      digits[0].focus();
-    }, 1500);
+      setTimeout(() => {
+        digits.forEach(d => {
+          d.style.borderColor = '';
+          d.style.animation = '';
+        });
+        err.classList.remove('show');
+        digits[0].focus();
+      }, 1500);
+    }
   }
 }
 
@@ -807,7 +969,27 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
+function goBack() {
+  if (operationDone) {
+    // 操作済み → ロック画面に戻してコード再入力を要求
+    operationDone = false;
+    const digits = document.querySelectorAll('.code-digit');
+    digits.forEach(d => { d.value = ''; d.disabled = false; });
+    document.getElementById('lockoutMsg')?.classList.remove('show');
+    const inputWrap = document.getElementById('codeInputWrap');
+    if (inputWrap) { inputWrap.style.opacity = ''; inputWrap.style.pointerEvents = ''; }
+    const btn = document.getElementById('submitBtn');
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    document.getElementById('lockIcon').textContent = '🔐';
+    showScreen('lockScreen');
+    setTimeout(() => digits[0]?.focus(), 100);
+  } else {
+    showGradeSelect();
+  }
+}
+
 function showGradeSelect() {
+  operationDone = false;
   renderGradeGrid();
   showScreen('gradeScreen');
 }
@@ -918,6 +1100,7 @@ function setStatus(grade, name, isIn, event) {
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   status[key] = { in: true, time: timeStr, phone: '' };
   saveStatus();
+  operationDone = true;
   updateCard(grade, name);
   showToast(`${name} — 入室しました`);
   renderGradeGrid();
@@ -929,6 +1112,7 @@ function setStatusOut(grade, name, phone) {
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   status[key] = { in: false, time: timeStr, phone: phone || '' };
   saveStatus();
+  operationDone = true;
   updateCard(grade, name);
   showToast(`${name} — 退室しました${phone ? ' 📞 ' + phone : ''}`);
   renderGradeGrid();
@@ -998,6 +1182,7 @@ function showToast(msg) {
   loadData();
   setupCodeInputs();
   startClock();
+  checkLockoutOnLoad(); // ページ読み込み時にロック状態を復元
 })();
 </script>
 </body>
