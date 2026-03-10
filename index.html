@@ -1357,7 +1357,8 @@ function setStatus(grade, name, isIn, event) {
   const key = `${grade}_${name}`;
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  status[key] = { in: true, time: timeStr, phone: '' };
+  const prev = status[key] || {};
+  status[key] = { in: true, time: timeStr, inTime: timeStr, outTime: prev.outTime || '', phone: '' };
   saveStatus();
   appendLog(grade, name, '入室', '');
   operationDone = true;
@@ -1372,7 +1373,8 @@ function setStatusOut(grade, name, phone) {
   const key = `${grade}_${name}`;
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  status[key] = { in: false, time: timeStr, phone: phone || '' };
+  const prev = status[key] || {};
+  status[key] = { in: false, time: timeStr, inTime: prev.inTime || '', outTime: timeStr, phone: phone || '' };
   saveStatus();
   appendLog(grade, name, '退室', phone);
   operationDone = true;

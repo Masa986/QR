@@ -186,6 +186,10 @@
   .student-row:last-child { border-bottom: none; }
   .student-row.is-in { background: rgba(16, 185, 129, 0.03); }
   .student-row.is-out { background: rgba(245, 158, 11, 0.02); }
+  .student-row.is-alert {
+    background: rgba(239, 68, 68, 0.07);
+    border-left: 3px solid #ef4444;
+  }
 
   .s-name { font-size: 16px; font-weight: 600; }
 
@@ -215,11 +219,73 @@
     color: var(--out);
     border: 1px solid rgba(245, 158, 11, 0.25);
   }
+  .badge-alert {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    font-weight: 700;
+    animation: pulse-alert 1.5s ease infinite;
+  }
+
+  .s-time-elapsed {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--text2);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+
+  .stat-card-alert {
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+  .stat-card-alert.has-alert {
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.05);
+    animation: pulse-alert 1.5s ease infinite;
+  }
+  .alert-val { color: #f87171; }
 
   .s-time {
     font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     color: var(--text2);
+  }
+
+  .s-times {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .s-time-chip {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .s-time-in {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--in);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+  }
+  .s-time-out {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--out);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+  .s-time-alert {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    font-weight: 700;
+    font-size: 12px;
+    padding: 2px 10px;
+    animation: pulse-alert 1.5s ease infinite;
+  }
+  @keyframes pulse-alert {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.55; }
   }
 
   .s-phone {
@@ -587,6 +653,13 @@
       <div class="stat-label">端末セッション</div>
     </div>
   </div>
+  <div class="stat-card stat-card-alert" id="alertStatCard">
+    <div class="stat-icon" id="totalAlertIcon">✅</div>
+    <div>
+      <div class="stat-value alert-val" id="totalAlert">0</div>
+      <div class="stat-label">長時間外出</div>
+    </div>
+  </div>
 </div>
 
 <div class="grade-grid" id="gradeGrid"></div>
@@ -822,9 +895,27 @@ function parseCsv(text) {
   }
 }
 
+// 時刻文字列("HH:MM")をその日のDateオブジェクトに変換
+function timeStrToDate(timeStr) {
+  if (!timeStr || timeStr === '--:--') return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+// 退室時刻から現在時刻までの経過分数を返す
+function minutesSinceOut(outTime) {
+  const t = timeStrToDate(outTime);
+  if (!t) return null;
+  const diff = Math.round((Date.now() - t.getTime()) / 60000);
+  return diff >= 0 ? diff : null; // 未来時刻は無視
+}
+
 function renderAll() {
   const grades = Object.keys(roster).sort();
-  let totalIn = 0, totalOut = 0, total = 0;
+  let totalIn = 0, totalOut = 0, total = 0, totalAlert = 0;
 
   const html = grades.map(grade => {
     const students = roster[grade] || [];
@@ -836,16 +927,44 @@ function renderAll() {
     const rows = students.map(name => {
       const key = `${grade}_${name}`;
       const st = status[key] || { in: true, time: '--:--' };
-      const isIn = st.in !== false;
-      const phone = st.phone || '';
+      const isIn    = st.in !== false;
+      const phone   = st.phone   || '';
+      const inTime  = st.inTime  || (isIn ? st.time : '') || '';
+      const outTime = st.outTime || (!isIn ? st.time : '') || '';
+
+      // アラート判定：退室中 かつ 退室から2時間以上経過
+      const elapsedMin = (!isIn && outTime) ? minutesSinceOut(outTime) : null;
+      const isAlert    = elapsedMin !== null && elapsedMin >= 120;
+      if (isAlert) totalAlert++;
+
+      // 経過時間の表示文字列
+      let elapsedStr = '';
+      if (!isIn && elapsedMin !== null) {
+        const h = Math.floor(elapsedMin / 60);
+        const m = elapsedMin % 60;
+        elapsedStr = h > 0 ? `${h}時間${m > 0 ? m + '分' : ''}` : `${m}分`;
+      }
+
+      // 時刻チップ生成
+      let timeChips = '';
+      if (inTime && inTime !== '--:--') {
+        timeChips += `<span class="s-time-chip s-time-in">🟢 入室 ${inTime}</span>`;
+      }
+      if (!isIn && outTime) {
+        timeChips += `<span class="s-time-chip s-time-out">🚶 退室 ${outTime}</span>`;
+        timeChips += `<span class="s-time-chip ${isAlert ? 's-time-alert' : 's-time-elapsed'}">
+          ${isAlert ? '⚠️' : '🕐'} 外出 ${elapsedStr}
+        </span>`;
+      }
+
       return `
-        <div class="student-row ${isIn ? 'is-in' : 'is-out'}">
-          <div class="s-name">${name}</div>
+        <div class="student-row ${isAlert ? 'is-alert' : (isIn ? 'is-in' : 'is-out')}">
+          <div class="s-name">${isAlert ? '⚠️ ' : ''}${name}</div>
           <div class="s-right">
-            <span class="status-badge ${isIn ? 'badge-in' : 'badge-out'}">
-              ${isIn ? '✅ 入室中' : '🚶 退室'}
+            <span class="status-badge ${isIn ? 'badge-in' : (isAlert ? 'badge-alert' : 'badge-out')}">
+              ${isIn ? '✅ 入室中' : (isAlert ? '⚠️ 長時間外出' : '🚶 退室')}
             </span>
-            ${st.time !== '--:--' ? `<span class="s-time">${st.time}</span>` : ''}
+            <div class="s-times">${timeChips}</div>
             ${!isIn && phone ? `<span class="s-phone">📞 ${phone}</span>` : ''}
           </div>
         </div>
@@ -864,9 +983,19 @@ function renderAll() {
   }).join('');
 
   document.getElementById('gradeGrid').innerHTML = html;
-  document.getElementById('totalIn').textContent = totalIn;
+  document.getElementById('totalIn').textContent  = totalIn;
   document.getElementById('totalOut').textContent = totalOut;
   document.getElementById('totalAll').textContent = total;
+
+  // アラートカード更新
+  const alertCard = document.getElementById('totalAlert');
+  const alertIcon = document.getElementById('totalAlertIcon');
+  const alertStatCard = document.getElementById('alertStatCard');
+  if (alertCard) alertCard.textContent = totalAlert;
+  if (alertIcon) alertIcon.textContent = totalAlert > 0 ? '🚨' : '✅';
+  if (alertStatCard) {
+    alertStatCard.classList.toggle('has-alert', totalAlert > 0);
+  }
 }
 
 // ===== RESET =====
@@ -1063,6 +1192,8 @@ function renderSessionStatus() {
 }
 
 setInterval(updateClock, 1000);
+// 1分ごとに経過時間・アラート状態を再描画
+setInterval(() => { if (isUnlocked) renderAll(); }, 60000);
 updateClock();
 setupAdminInputs();
 checkAdminLockoutOnLoad(); // ページ読み込み時にロック状態を復元
