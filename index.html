@@ -392,203 +392,6 @@
   }
   .monitor-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-  /* ===== MONITOR SCREEN ===== */
-  #monitorScreen {
-    min-height: 100vh;
-    padding: 32px 24px;
-    justify-content: flex-start;
-    align-items: flex-start;
-  }
-
-  .monitor-header {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 32px;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .monitor-title {
-    font-size: 28px;
-    font-weight: 900;
-    color: var(--text);
-  }
-
-  .monitor-title span {
-    color: var(--accent);
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  .live-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--in);
-  }
-
-  .live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--in);
-    animation: pulse 1.5s infinite;
-  }
-
-  .monitor-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    width: 100%;
-    margin-bottom: 32px;
-  }
-
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .stat-icon { font-size: 28px; }
-
-  .stat-value {
-    font-size: 32px;
-    font-weight: 900;
-    font-family: 'Share Tech Mono', monospace;
-    line-height: 1;
-  }
-  .stat-value.in-val { color: var(--in); }
-  .stat-value.out-val { color: var(--out); }
-
-  .stat-label {
-    font-size: 12px;
-    color: var(--text2);
-    margin-top: 4px;
-  }
-
-  .monitor-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 24px;
-    width: 100%;
-  }
-
-  .grade-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-
-  .grade-header {
-    padding: 16px 20px;
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(0, 212, 255, 0.1));
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .grade-header-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent);
-  }
-
-  .grade-in-count {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--in);
-    background: rgba(16, 185, 129, 0.1);
-    border-radius: 20px;
-    padding: 3px 12px;
-  }
-
-  .monitor-student-row {
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    transition: background 0.2s;
-  }
-  .monitor-student-row:last-child { border-bottom: none; }
-  .monitor-student-row:hover { background: rgba(255,255,255,0.02); }
-
-  .monitor-name {
-    font-size: 15px;
-    font-weight: 500;
-  }
-
-  .monitor-status-badge {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }
-  .badge-in {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--in);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-  }
-  .badge-out {
-    background: rgba(245, 158, 11, 0.1);
-    color: var(--out);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-  }
-
-  .monitor-time {
-    font-size: 11px;
-    color: var(--text2);
-    font-family: 'Share Tech Mono', monospace;
-    margin-top: 2px;
-  }
-
-  /* ===== QR PAGE ===== */
-  #qrScreen {
-    text-align: center;
-  }
-
-  .qr-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 48px 40px;
-    max-width: 380px;
-    width: 100%;
-    box-shadow: var(--glow), 0 25px 50px rgba(0,0,0,0.5);
-  }
-
-  .qr-placeholder {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 0 auto 24px;
-    width: 200px;
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #666;
-    text-align: center;
-  }
-
   /* ===== ANIMATIONS ===== */
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
@@ -854,11 +657,6 @@
   </div>
   <div class="grade-grid" id="gradeGrid"></div>
 
-  <div class="monitor-link" style="margin-top:32px">
-    <button class="monitor-btn" onclick="showMonitor()">
-      📊 モニター画面を開く
-    </button>
-  </div>
 </div>
 
 <!-- ATTENDANCE SCREEN -->
@@ -875,50 +673,6 @@
   </div>
   <div class="student-list" id="studentList"></div>
   <div style="height:80px"></div>
-</div>
-
-<!-- MONITOR SCREEN -->
-<div id="monitorScreen" class="screen">
-  <div class="monitor-header">
-    <div>
-      <div class="monitor-title">出退室 <span>MONITOR</span></div>
-      <div style="font-size:13px;color:var(--text2);margin-top:4px" id="monitorTime"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div class="live-badge">
-        <div class="live-dot"></div>
-        LIVE
-      </div>
-      <button class="back-btn" onclick="showGradeSelect()">← 戻る</button>
-    </div>
-  </div>
-
-  <div class="monitor-stats">
-    <div class="stat-card">
-      <div class="stat-icon">✅</div>
-      <div>
-        <div class="stat-value in-val" id="totalIn">0</div>
-        <div class="stat-label">入室中</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🚶</div>
-      <div>
-        <div class="stat-value out-val" id="totalOut">0</div>
-        <div class="stat-label">退室</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">👥</div>
-      <div>
-        <div class="stat-value" id="totalAll">0</div>
-        <div class="stat-label">合計</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="monitor-grid" id="monitorGrid"></div>
-  <div style="height:32px"></div>
 </div>
 
 <!-- PHONE MODAL -->
@@ -1208,60 +962,6 @@ function updateCard(grade, name) {
   }
 }
 
-// ===== RENDER MONITOR =====
-function renderMonitor() {
-  const grades = Object.keys(roster).sort();
-  let totalIn = 0, totalOut = 0, total = 0;
-
-  const html = grades.map(grade => {
-    const students = roster[grade] || [];
-    const inCount = students.filter(n => status[`${grade}_${n}`]?.in !== false).length;
-    totalIn += inCount;
-    totalOut += students.length - inCount;
-    total += students.length;
-
-    const rows = students.map(name => {
-      const key = `${grade}_${name}`;
-      const st = status[key] || { in: true, time: '--:--' };
-      const isIn = st.in !== false;
-      const phone = st.phone || '';
-      return `
-        <div class="monitor-student-row">
-          <div>
-            <div class="monitor-name">${name}</div>
-            <div class="monitor-time">${st.time !== '--:--' ? st.time : ''}</div>
-          </div>
-          <div style="text-align:right">
-            <span class="monitor-status-badge ${isIn ? 'badge-in' : 'badge-out'}">
-              ${isIn ? '✅ 入室中' : '🚶 退室'}
-            </span>
-            ${!isIn && phone ? `<div style="margin-top:4px;font-size:11px;color:var(--out);font-family:'Share Tech Mono',monospace;">📞 ${phone}</div>` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div class="grade-section">
-        <div class="grade-header">
-          <div class="grade-header-name">📚 ${grade}</div>
-          <div class="grade-in-count">入室 ${inCount}/${students.length}</div>
-        </div>
-        ${rows}
-      </div>
-    `;
-  }).join('');
-
-  document.getElementById('monitorGrid').innerHTML = html;
-  document.getElementById('totalIn').textContent = totalIn;
-  document.getElementById('totalOut').textContent = totalOut;
-  document.getElementById('totalAll').textContent = total;
-
-  const now = new Date();
-  document.getElementById('monitorTime').textContent = 
-    `最終更新: ${now.toLocaleTimeString('ja-JP')}`;
-}
-
 // ===== CLOCK =====
 function startClock() {
   function tick() {
@@ -1289,7 +989,6 @@ function showToast(msg) {
     if (e.key === 'Escape') closeModal();
   });
 
-  // Click overlay to close
   document.getElementById('phoneModal').addEventListener('click', (e) => {
     if (e.target === document.getElementById('phoneModal')) closeModal();
   });
@@ -1297,14 +996,6 @@ function showToast(msg) {
   loadData();
   setupCodeInputs();
   startClock();
-  setupCodeInputs();
-  startClock();
-  
-  // Check URL params for direct monitor access
-  const url = new URL(window.location.href);
-  if (url.searchParams.get('monitor') === '1') {
-    showMonitor();
-  }
 })();
 </script>
 </body>

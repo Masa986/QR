@@ -241,6 +241,11 @@
     50% { opacity: 0.5; transform: scale(0.8); }
   }
 
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   @media (max-width: 600px) {
     body { padding: 16px; }
     .stats-row { grid-template-columns: 1fr; }
@@ -250,6 +255,56 @@
 </style>
 </head>
 <body>
+
+<!-- 管理者ロック画面 -->
+<div id="adminLock" style="
+  min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  background: var(--bg);
+">
+  <div style="
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:48px 40px; width:100%; max-width:400px; text-align:center;
+    box-shadow:0 0 40px rgba(0,212,255,0.15), 0 25px 50px rgba(0,0,0,0.5);
+    animation: fadeIn 0.5s ease;
+  ">
+    <div style="font-size:48px; margin-bottom:16px; filter:drop-shadow(0 0 10px var(--accent))">🛡️</div>
+    <div style="font-size:22px; font-weight:700; color:var(--accent); margin-bottom:8px; letter-spacing:0.05em;">管理者モニター</div>
+    <div style="font-size:13px; color:var(--text2); margin-bottom:32px;">管理者コードを入力してください</div>
+    <div style="display:flex; gap:12px; justify-content:center; margin-bottom:24px;">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" autofocus style="
+        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
+        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
+        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
+      ">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="
+        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
+        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
+        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
+      ">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="
+        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
+        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
+        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
+      ">
+      <input class="admin-digit" type="text" inputmode="numeric" maxlength="1" style="
+        width:56px; height:68px; background:var(--surface2); border:2px solid var(--border);
+        border-radius:12px; font-size:28px; font-family:'Share Tech Mono',monospace; font-weight:700;
+        color:var(--accent); text-align:center; outline:none; transition:all 0.2s;
+      ">
+    </div>
+    <button onclick="checkAdminCode()" style="
+      width:100%; padding:14px; background:linear-gradient(135deg,#7c3aed,var(--accent));
+      border:none; border-radius:12px; color:white; font-size:16px; font-weight:700;
+      font-family:'Noto Sans JP',sans-serif; cursor:pointer; transition:all 0.3s; letter-spacing:0.05em;
+    ">モニターを開く →</button>
+    <div id="adminError" style="color:#ef4444; font-size:13px; margin-top:12px; display:none;">
+      ❌ 管理者コードが正しくありません
+    </div>
+  </div>
+</div>
+
+<!-- モニター本体（認証後に表示） -->
+<div id="monitorContent" style="display:none; padding:32px;">
 
 <div class="header">
   <div class="title-block">
@@ -289,7 +344,9 @@
 
 <div class="grade-grid" id="gradeGrid"></div>
 
-<div class="footer" id="footer">最終更新: -- | 30秒ごとに自動リロード</div>
+<div class="footer" id="footer">最終更新: -- | 5秒ごとに自動更新</div>
+
+</div><!-- /monitorContent -->
 
 <script>
 let roster = {};
@@ -303,18 +360,21 @@ const MEIBO_CSV = `学年,名前
 2年,富山愛
 2年,遠藤悟
 2年,瀬川流`;
+
+// ★ 管理者専用アクセスコード（一般のアクセスコードとは別に設定）
+const ADMIN_CODE = '9999';
 // ============================================================
+
+let isUnlocked = false;
 
 function loadData() {
   parseCsv(MEIBO_CSV);
 
-  // Load status from shared localStorage
   try {
     const saved = localStorage.getItem('attendance_status');
     if (saved) status = JSON.parse(saved);
   } catch(e) {}
 
-  // Init defaults
   Object.keys(roster).forEach(grade => {
     roster[grade].forEach(name => {
       const key = `${grade}_${name}`;
@@ -323,6 +383,52 @@ function loadData() {
   });
 
   renderAll();
+}
+
+function checkAdminCode() {
+  const digits = document.querySelectorAll('.admin-digit');
+  const entered = Array.from(digits).map(d => d.value).join('');
+  if (entered === ADMIN_CODE) {
+    isUnlocked = true;
+    document.getElementById('adminLock').style.display = 'none';
+    document.getElementById('monitorContent').style.display = 'block';
+    loadData();
+    setInterval(() => {
+      try {
+        const saved = localStorage.getItem('attendance_status');
+        if (saved) { status = JSON.parse(saved); renderAll(); }
+      } catch(e) {}
+    }, 5000);
+  } else {
+    digits.forEach(d => {
+      d.value = '';
+      d.style.borderColor = '#ef4444';
+    });
+    document.getElementById('adminError').style.display = 'block';
+    setTimeout(() => {
+      digits.forEach(d => d.style.borderColor = '');
+      document.getElementById('adminError').style.display = 'none';
+      digits[0].focus();
+    }, 1500);
+  }
+}
+
+function setupAdminInputs() {
+  const digits = document.querySelectorAll('.admin-digit');
+  digits.forEach((input, i) => {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/\D/g, '');
+      e.target.value = val ? val[val.length-1] : '';
+      if (val && i < digits.length - 1) digits[i+1].focus();
+      if (val && i === digits.length - 1) checkAdminCode();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && i > 0) {
+        digits[i-1].focus();
+        digits[i-1].value = '';
+      }
+    });
+  });
 }
 
 function parseCsv(text) {
@@ -399,19 +505,7 @@ function updateClock() {
 
 setInterval(updateClock, 1000);
 updateClock();
-
-// Reload status from storage every 5 seconds
-setInterval(() => {
-  try {
-    const saved = localStorage.getItem('attendance_status');
-    if (saved) {
-      status = JSON.parse(saved);
-      renderAll();
-    }
-  } catch(e) {}
-}, 5000);
-
-loadData();
+setupAdminInputs();
 </script>
 </body>
 </html>
