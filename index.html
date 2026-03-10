@@ -841,8 +841,8 @@ let operatedKey   = null;
 
 // ===== SESSION CONTROL =====
 const SESSION_KEY     = 'attendance_active_session';
-const SESSION_TIMEOUT = 5 * 60 * 1000; // 5分で自動解放
-const SESSION_HEARTBEAT = 20 * 1000;   // 20秒ごとに生存確認更新
+const SESSION_TIMEOUT   = 5 * 60 * 1000; // 5分で自動解放
+const SESSION_HEARTBEAT = 30 * 1000;     // 30秒ごとに生存確認更新（これより短い間隔でタイムアウト表示はされない）
 
 // このタブ固有のID
 const MY_SESSION_ID = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;

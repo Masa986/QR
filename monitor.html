@@ -1028,8 +1028,11 @@ function clearLog() {
 }
 
 // ===== SESSION STATUS =====
-const SESSION_KEY     = 'attendance_active_session';
-const SESSION_TIMEOUT = 5 * 60 * 1000;
+const SESSION_KEY       = 'attendance_active_session';
+const SESSION_TIMEOUT   = 5 * 60 * 1000;   // 5分
+const SESSION_HEARTBEAT = 30 * 1000;        // index.htmlのハートビート間隔と合わせる
+// タイムアウト判定はハートビート1回分の余裕を持たせる
+const SESSION_TIMEOUT_WITH_BUFFER = SESSION_TIMEOUT + SESSION_HEARTBEAT;
 
 function renderSessionStatus() {
   const iconEl  = document.getElementById('sessionStatIcon');
@@ -1041,7 +1044,7 @@ function renderSessionStatus() {
       iconEl.textContent = '🟢';
       valEl.textContent  = '待機中';
       valEl.style.color  = '';
-    } else if (Date.now() - s.ts > SESSION_TIMEOUT) {
+    } else if (Date.now() - s.ts > SESSION_TIMEOUT_WITH_BUFFER) {
       iconEl.textContent = '🟡';
       valEl.textContent  = 'タイムアウト';
       valEl.style.color  = '#f59e0b';
