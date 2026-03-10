@@ -141,6 +141,62 @@
     text-align: center;
   }
   .lockout-msg.show { display: block; }
+
+  /* セッション排他ブロック画面 */
+  #sessionBlockScreen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--bg);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  #sessionBlockScreen.show { display: flex; }
+  .session-block-card {
+    background: var(--surface);
+    border: 1px solid rgba(239,68,68,0.4);
+    border-radius: 20px;
+    padding: 48px 36px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(239,68,68,0.1), 0 25px 50px rgba(0,0,0,0.5);
+  }
+  .session-block-icon { font-size: 52px; margin-bottom: 16px; }
+  .session-block-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f87171;
+    margin-bottom: 10px;
+  }
+  .session-block-sub {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+  .session-block-timer {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 20px;
+  }
+  .session-retry-btn {
+    width: 100%;
+    padding: 13px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 12px;
+    color: #f87171;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .session-retry-btn:hover { background: rgba(239,68,68,0.2); }
   .lockout-title {
     color: #ef4444;
     font-size: 14px;
@@ -394,6 +450,12 @@
   .toggle-opt:disabled {
     opacity: 0.35;
     cursor: default;
+    pointer-events: none;
+  }
+
+  /* 操作済みによる他カードのロック */
+  .card-locked {
+    opacity: 0.45;
     pointer-events: none;
   }
 
@@ -676,6 +738,21 @@
 </head>
 <body>
 
+<!-- SESSION BLOCK SCREEN -->
+<div id="sessionBlockScreen">
+  <div class="session-block-card">
+    <div class="session-block-icon">🚫</div>
+    <div class="session-block-title">現在使用中です</div>
+    <div class="session-block-sub">
+      別の端末がこのシステムを使用中のため<br>
+      アクセスできません。<br>
+      操作が完了するまでお待ちください。
+    </div>
+    <div class="session-block-timer" id="sessionBlockTimer"></div>
+    <button class="session-retry-btn" onclick="retrySessionCheck()">🔄 再確認する</button>
+  </div>
+</div>
+
 <!-- LOCK SCREEN -->
 <div id="lockScreen" class="screen active">
   <div class="lock-card">
@@ -759,7 +836,110 @@ let status = {};
 let currentGrade = null;
 let monitorInterval = null;
 let clockInterval = null;
-let operationDone = false; // 入室・退室操作が行われたかどうか
+let operationDone = false;
+let operatedKey   = null;
+
+// ===== SESSION CONTROL =====
+const SESSION_KEY     = 'attendance_active_session';
+const SESSION_TIMEOUT = 5 * 60 * 1000; // 5分で自動解放
+const SESSION_HEARTBEAT = 20 * 1000;   // 20秒ごとに生存確認更新
+
+// このタブ固有のID
+const MY_SESSION_ID = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+let heartbeatTimer    = null;
+let sessionCheckTimer = null;
+
+function getActiveSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { return null; }
+}
+
+function claimSession() {
+  const data = { id: MY_SESSION_ID, ts: Date.now() };
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function releaseSession() {
+  const s = getActiveSession();
+  if (s && s.id === MY_SESSION_ID) {
+    try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+  }
+  clearInterval(heartbeatTimer);
+  clearInterval(sessionCheckTimer);
+}
+
+function startHeartbeat() {
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = setInterval(() => {
+    const s = getActiveSession();
+    if (s && s.id === MY_SESSION_ID) {
+      claimSession(); // タイムスタンプ更新
+    } else {
+      // 別端末に奪われた場合は強制ロック画面に戻す
+      forceReturnToLock('別の端末にセッションが移行しました');
+    }
+  }, SESSION_HEARTBEAT);
+}
+
+function isSessionAvailable() {
+  const s = getActiveSession();
+  if (!s) return true;
+  if (s.id === MY_SESSION_ID) return true;
+  // タイムアウトチェック
+  if (Date.now() - s.ts > SESSION_TIMEOUT) {
+    try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+    return true;
+  }
+  return false;
+}
+
+function forceReturnToLock(reason) {
+  releaseSession();
+  operationDone = false;
+  operatedKey   = null;
+  const digits = document.querySelectorAll('.code-digit');
+  digits.forEach(d => { d.value = ''; d.disabled = false; });
+  const inputWrap = document.getElementById('codeInputWrap');
+  if (inputWrap) { inputWrap.style.opacity = ''; inputWrap.style.pointerEvents = ''; }
+  const btn = document.getElementById('submitBtn');
+  if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  document.getElementById('lockIcon').textContent = '🔐';
+  document.getElementById('lockoutMsg')?.classList.remove('show');
+  showScreen('lockScreen');
+}
+
+// 別端末使用中の表示
+function showSessionBlock() {
+  const s = getActiveSession();
+  const blockScreen = document.getElementById('sessionBlockScreen');
+  const timerEl     = document.getElementById('sessionBlockTimer');
+  blockScreen.classList.add('show');
+
+  function updateTimer() {
+    const s2 = getActiveSession();
+    if (!s2) { hideSessionBlock(); return; }
+    const elapsed  = Date.now() - s2.ts;
+    const remaining = Math.max(0, Math.ceil((SESSION_TIMEOUT - elapsed) / 1000));
+    const m = Math.floor(remaining / 60);
+    const sec = remaining % 60;
+    timerEl.textContent = `自動解放まで: ${m}:${String(sec).padStart(2,'0')}`;
+    if (remaining <= 0) hideSessionBlock();
+  }
+  updateTimer();
+  clearInterval(sessionCheckTimer);
+  sessionCheckTimer = setInterval(updateTimer, 1000);
+}
+
+function hideSessionBlock() {
+  clearInterval(sessionCheckTimer);
+  document.getElementById('sessionBlockScreen').classList.remove('show');
+}
+
+function retrySessionCheck() {
+  if (isSessionAvailable()) {
+    hideSessionBlock();
+  }
+  // まだ使用中なら表示継続
+}
 
 // ===== ★ 設定エリア ==========================================
 // AC_US.txt の内容をそのままここに貼り付けてください（一般ユーザー用コード）
@@ -927,6 +1107,16 @@ function checkCode() {
 
   if (entered === accessCode) {
     resetBfState();
+    // セッション排他チェック
+    if (!isSessionAvailable()) {
+      showSessionBlock();
+      // コード入力欄をリセット
+      digits.forEach(d => d.value = '');
+      digits[0].focus();
+      return;
+    }
+    claimSession();
+    startHeartbeat();
     showGradeSelect();
   } else {
     state.attempts += 1;
@@ -971,8 +1161,10 @@ function showScreen(id) {
 
 function goBack() {
   if (operationDone) {
-    // 操作済み → ロック画面に戻してコード再入力を要求
+    // 操作済み → セッション解放してロック画面へ
+    releaseSession();
     operationDone = false;
+    operatedKey   = null;
     const digits = document.querySelectorAll('.code-digit');
     digits.forEach(d => { d.value = ''; d.disabled = false; });
     document.getElementById('lockoutMsg')?.classList.remove('show');
@@ -990,11 +1182,13 @@ function goBack() {
 
 function showGradeSelect() {
   operationDone = false;
+  operatedKey   = null;
   renderGradeGrid();
   showScreen('gradeScreen');
 }
 
 function showGrade(grade) {
+  if (operationDone) return; // 操作済みの場合は別学年への移動を禁止
   currentGrade = grade;
   document.getElementById('attendTitle').textContent = grade;
   const count = roster[grade]?.length || 0;
@@ -1014,18 +1208,34 @@ function showMonitor() {
 function renderGradeGrid() {
   const container = document.getElementById('gradeGrid');
   const grades = Object.keys(roster).sort();
+  const locked = operationDone; // 操作済みなら学年選択不可
   container.innerHTML = grades.map((grade, i) => {
     const num = grade.replace(/[^0-9]/g, '');
     const total = roster[grade].length;
     const inCount = roster[grade].filter(n => status[`${grade}_${n}`]?.in !== false).length;
     return `
-      <div class="grade-btn" onclick="showGrade('${grade}')" style="animation-delay:${i*0.1+0.1}s">
+      <div class="grade-btn ${locked ? 'card-locked' : ''}" onclick="showGrade('${grade}')" style="animation-delay:${i*0.1+0.1}s">
         <div class="grade-number">${num}</div>
         <div class="grade-label">${grade}</div>
         <div class="grade-count">入室 ${inCount}/${total}</div>
       </div>
     `;
   }).join('');
+
+  // 操作済みの場合は「戻る」誘導メッセージを表示
+  const msgId = 'gradeLockedMsg';
+  let msgEl = document.getElementById(msgId);
+  if (locked) {
+    if (!msgEl) {
+      msgEl = document.createElement('div');
+      msgEl.id = msgId;
+      msgEl.style.cssText = 'text-align:center;color:#94a3b8;font-size:13px;margin-top:16px;padding:12px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.08);';
+      msgEl.textContent = '✅ 操作が完了しました。終了する場合は「← 戻る」を押してください。';
+      container.parentElement.appendChild(msgEl);
+    }
+  } else {
+    msgEl?.remove();
+  }
 }
 
 // ===== RENDER STUDENT LIST =====
@@ -1037,8 +1247,11 @@ function renderStudentList(grade) {
     const st = status[key] || { in: true, time: '--:--' };
     const isIn = st.in !== false;
     const phone = st.phone || '';
+    // 操作済みの場合、この人以外は全ボタンをロック
+    const isOperatedPerson = operationDone && operatedKey === key;
+    const lockOthers = operationDone && !isOperatedPerson;
     return `
-      <div class="student-card ${isIn ? 'status-in' : 'status-out'}" id="card_${key.replace(/ /g,'_')}" style="animation-delay:${i*0.07}s">
+      <div class="student-card ${isIn ? 'status-in' : 'status-out'} ${lockOthers ? 'card-locked' : ''}" id="card_${key.replace(/ /g,'_')}" style="animation-delay:${i*0.07}s">
         <div class="status-indicator">${isIn ? '✅' : '🚶'}</div>
         <div style="flex:1">
           <div class="student-name">${name}</div>
@@ -1049,8 +1262,8 @@ function renderStudentList(grade) {
           </div>
         </div>
         <div class="status-toggle">
-          <button class="toggle-opt in-opt" onclick="setStatus('${grade}', '${name}', true, event)" ${isIn ? 'disabled' : ''}>入室</button>
-          <button class="toggle-opt out-opt" onclick="openPhoneModal('${grade}', '${name}', event)" ${!isIn ? 'disabled' : ''}>退室</button>
+          <button class="toggle-opt out-opt" onclick="openPhoneModal('${grade}', '${name}', event)" ${(!isIn || lockOthers) ? 'disabled' : ''}>退室</button>
+          <button class="toggle-opt in-opt" onclick="setStatus('${grade}', '${name}', true, event)" ${(isIn || lockOthers) ? 'disabled' : ''}>入室</button>
         </div>
       </div>
     `;
@@ -1144,7 +1357,9 @@ function setStatus(grade, name, isIn, event) {
   saveStatus();
   appendLog(grade, name, '入室', '');
   operationDone = true;
+  operatedKey   = key;
   updateCard(grade, name);
+  lockOtherCards(key);
   showToast(`${name} — 入室しました`);
   renderGradeGrid();
 }
@@ -1157,9 +1372,24 @@ function setStatusOut(grade, name, phone) {
   saveStatus();
   appendLog(grade, name, '退室', phone);
   operationDone = true;
+  operatedKey   = key;
   updateCard(grade, name);
+  lockOtherCards(key);
   showToast(`${name} — 退室しました${phone ? ' 📞 ' + phone : ''}`);
   renderGradeGrid();
+}
+
+// 操作済み後に他カードを即座にロック
+function lockOtherCards(doneKey) {
+  const cards = document.querySelectorAll('.student-card');
+  cards.forEach(card => {
+    if (card.id === `card_${doneKey.replace(/ /g,'_')}`) {
+      card.classList.remove('card-locked');
+    } else {
+      card.classList.add('card-locked');
+      card.querySelectorAll('button').forEach(b => b.disabled = true);
+    }
+  });
 }
 
 function updateCard(grade, name) {
@@ -1223,10 +1453,14 @@ function showToast(msg) {
     if (e.target === document.getElementById('phoneModal')) closeModal();
   });
 
+  // ページ離脱・タブ閉鎖時にセッション解放
+  window.addEventListener('beforeunload', () => releaseSession());
+  window.addEventListener('pagehide',     () => releaseSession());
+
   loadData();
   setupCodeInputs();
   startClock();
-  checkLockoutOnLoad(); // ページ読み込み時にロック状態を復元
+  checkLockoutOnLoad();
 })();
 </script>
 </body>

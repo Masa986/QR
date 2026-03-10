@@ -488,6 +488,13 @@
       <div class="stat-label">合計</div>
     </div>
   </div>
+  <div class="stat-card" id="sessionStatCard">
+    <div class="stat-icon" id="sessionStatIcon">🟢</div>
+    <div>
+      <div class="stat-value" id="sessionStatValue" style="font-size:13px;">待機中</div>
+      <div class="stat-label">端末セッション</div>
+    </div>
+  </div>
 </div>
 
 <div class="grade-grid" id="gradeGrid"></div>
@@ -573,6 +580,7 @@ function loadData() {
   renderAll();
   populateGradeFilter();
   renderLog();
+  renderSessionStatus();
 }
 
 // ===== BRUTE FORCE PROTECTION (管理者用) =====
@@ -663,6 +671,7 @@ function checkAdminCode() {
         const saved = localStorage.getItem('attendance_status');
         if (saved) { status = JSON.parse(saved); renderAll(); }
         renderLog();
+        renderSessionStatus();
       } catch(e) {}
     }, 5000);
   } else {
@@ -853,6 +862,33 @@ function clearLog() {
   if (!confirm('操作ログをすべて削除しますか？\nこの操作は元に戻せません。')) return;
   localStorage.removeItem(LOG_KEY);
   renderLog();
+}
+
+// ===== SESSION STATUS =====
+const SESSION_KEY     = 'attendance_active_session';
+const SESSION_TIMEOUT = 5 * 60 * 1000;
+
+function renderSessionStatus() {
+  const iconEl  = document.getElementById('sessionStatIcon');
+  const valEl   = document.getElementById('sessionStatValue');
+  if (!iconEl || !valEl) return;
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+    if (!s) {
+      iconEl.textContent = '🟢';
+      valEl.textContent  = '待機中';
+      valEl.style.color  = '';
+    } else if (Date.now() - s.ts > SESSION_TIMEOUT) {
+      iconEl.textContent = '🟡';
+      valEl.textContent  = 'タイムアウト';
+      valEl.style.color  = '#f59e0b';
+    } else {
+      const elapsed = Math.floor((Date.now() - s.ts) / 1000);
+      iconEl.textContent = '🔴';
+      valEl.textContent  = `使用中 (${elapsed}秒)`;
+      valEl.style.color  = '#f87171';
+    }
+  } catch(e) {}
 }
 
 setInterval(updateClock, 1000);
