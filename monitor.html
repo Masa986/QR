@@ -295,19 +295,20 @@
 let roster = {};
 let status = {};
 
-async function loadData() {
-  try {
-    const csvRes = await fetch('meibo.csv');
-    const csvText = await csvRes.text();
-    parseCsv(csvText);
-  } catch(e) {
-    roster = {
-      '1年': ['佐藤琢磨', '菊池裕也'],
-      '2年': ['斎藤実子', '富山愛', '遠藤悟', '瀬川流']
-    };
-  }
+// ===== ★ 設定エリア（index.htmlと同じ名簿を記入） =====
+const MEIBO_CSV = `学年,名前
+1年,佐藤琢磨
+1年,菊池裕也
+2年,斎藤実子
+2年,富山愛
+2年,遠藤悟
+2年,瀬川流`;
+// ============================================================
 
-  // Load status from shared storage (localStorage as cross-page state)
+function loadData() {
+  parseCsv(MEIBO_CSV);
+
+  // Load status from shared localStorage
   try {
     const saved = localStorage.getItem('attendance_status');
     if (saved) status = JSON.parse(saved);

@@ -942,45 +942,36 @@
 
 <script>
 // ===== STATE =====
-let roster = {};        // { '1年': ['佐藤琢磨', ...], '2年': [...] }
-let status = {};        // { '1年_佐藤琢磨': { in: true, time: '...' } }
-let accessCode = '5556';
+let roster = {};
+let status = {};
 let currentGrade = null;
 let monitorInterval = null;
 let clockInterval = null;
 
-// ===== LOAD FILES =====
-async function loadData() {
-  try {
-    // Load meibo.csv
-    const csvRes = await fetch('meibo.csv');
-    const csvText = await csvRes.text();
-    parseCsv(csvText);
-  } catch(e) {
-    console.warn('meibo.csv not found, using demo data');
-    // Demo data fallback
-    roster = {
-      '1年': ['佐藤琢磨', '菊池裕也'],
-      '2年': ['斎藤実子', '富山愛', '遠藤悟', '瀬川流']
-    };
-  }
+// ===== ★ 設定エリア（名簿とアクセスコードをここに直接記入) =====
+const ACCESS_CODE = '5556';
 
-  try {
-    // Load accesscode.txt
-    const codeRes = await fetch('accesscode.txt');
-    const codeText = await codeRes.text();
-    accessCode = codeText.trim();
-  } catch(e) {
-    console.warn('accesscode.txt not found, using default');
-    accessCode = '5556';
-  }
+const MEIBO_CSV = `学年,名前
+1年,佐藤琢磨
+1年,菊池裕也
+2年,斎藤実子
+2年,富山愛
+2年,遠藤悟
+2年,瀬川流`;
+// ================================================================
 
-  // Init status - restore from storage first
+let accessCode = ACCESS_CODE;
+
+// ===== LOAD DATA =====
+function loadData() {
+  parseCsv(MEIBO_CSV);
+
+  // Init status - restore from localStorage first
   try {
     const saved = localStorage.getItem('attendance_status');
     if (saved) status = JSON.parse(saved);
   } catch(e) {}
-  
+
   Object.keys(roster).forEach(grade => {
     roster[grade].forEach(name => {
       const key = `${grade}_${name}`;
@@ -1292,7 +1283,7 @@ function showToast(msg) {
 }
 
 // ===== INIT =====
-(async function init() {
+(function init() {
   document.getElementById('phoneInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') confirmOut();
     if (e.key === 'Escape') closeModal();
@@ -1303,7 +1294,9 @@ function showToast(msg) {
     if (e.target === document.getElementById('phoneModal')) closeModal();
   });
 
-  await loadData();
+  loadData();
+  setupCodeInputs();
+  startClock();
   setupCodeInputs();
   startClock();
   
