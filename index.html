@@ -703,11 +703,8 @@ let monitorInterval = null;
 let clockInterval = null;
 
 // ===== ★ 設定エリア ==========================================
-// accesscode.txt の内容をそのままここに貼り付けてください
-const ACCESSCODE_TXT = `
-user 5556
-Manage 2019
-`;
+// AC_US.txt の内容をそのままここに貼り付けてください（一般ユーザー用コード）
+const AC_US = `5556`;
 
 // 名簿 CSV の内容をそのままここに貼り付けてください
 const MEIBO_CSV = `学年,名前
@@ -719,17 +716,7 @@ const MEIBO_CSV = `学年,名前
 2年,瀬川流`;
 // ================================================================
 
-// accesscode.txt をパースして user / Manage のコードを取り出す
-function parseAccessCodes(text) {
-  const codes = {};
-  text.trim().split('\n').forEach(line => {
-    const parts = line.trim().split(/\s+/);
-    if (parts.length >= 2) codes[parts[0].toLowerCase()] = parts[1];
-  });
-  return codes;
-}
-const _codes = parseAccessCodes(ACCESSCODE_TXT);
-let accessCode = _codes['user'] || '5556';
+let accessCode = AC_US.trim();
 
 // ===== LOAD DATA =====
 function loadData() {
