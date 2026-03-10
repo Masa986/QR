@@ -307,6 +307,44 @@
   }
   .log-clear-btn:hover { background: rgba(239,68,68,0.18); }
 
+  /* ===== RESET BUTTON ===== */
+  .reset-btn {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 10px;
+    color: #f87171;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .reset-btn:hover {
+    background: rgba(239,68,68,0.22);
+    border-color: rgba(239,68,68,0.6);
+    color: #fca5a5;
+  }
+
+  .reset-check-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .reset-check-label:last-child { border-bottom: none; }
+  .reset-check-label input[type=checkbox] {
+    width: 16px; height: 16px;
+    accent-color: #ef4444;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
   #logTableWrap {
     overflow-x: auto;
   }
@@ -463,6 +501,55 @@
     <div class="live-badge"><div class="live-dot"></div>LIVE</div>
     <div class="clock" id="clock">--:--:--</div>
     <div class="date-str" id="dateStr">----</div>
+    <button class="reset-btn" onclick="showResetModal()">🔄 リセット</button>
+  </div>
+</div>
+
+<!-- リセット確認モーダル -->
+<div id="resetModal" style="
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
+  z-index:1000; align-items:center; justify-content:center; padding:24px;
+">
+  <div style="
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:36px 32px; width:100%; max-width:420px; text-align:center;
+    box-shadow:0 0 40px rgba(239,68,68,0.2), 0 25px 50px rgba(0,0,0,0.6);
+    animation: fadeIn 0.2s ease;
+  ">
+    <div style="font-size:48px; margin-bottom:16px;">⚠️</div>
+    <div style="font-size:20px; font-weight:700; color:#ef4444; margin-bottom:10px; letter-spacing:0.03em;">データをリセット</div>
+    <div style="font-size:13px; color:var(--text2); margin-bottom:28px; line-height:1.8;">
+      以下のデータをすべて初期状態に戻します。<br>
+      <strong style="color:var(--text);">この操作は元に戻せません。</strong>
+    </div>
+    <!-- リセット対象チェックボックス -->
+    <div style="text-align:left; background:rgba(255,255,255,0.04); border-radius:12px; padding:16px 20px; margin-bottom:24px;">
+      <label class="reset-check-label">
+        <input type="checkbox" id="chk_status" checked>
+        <span>✅ 出退室ステータス（全員を入室中に戻す）</span>
+      </label>
+      <label class="reset-check-label">
+        <input type="checkbox" id="chk_log" checked>
+        <span>📋 操作ログ（全件削除）</span>
+      </label>
+      <label class="reset-check-label">
+        <input type="checkbox" id="chk_lock">
+        <span>🔒 ブルートフォースロック（解除）</span>
+      </label>
+    </div>
+    <div style="display:flex; gap:12px;">
+      <button onclick="hideResetModal()" style="
+        flex:1; padding:13px; background:var(--surface2); border:1px solid var(--border);
+        border-radius:12px; color:var(--text2); font-family:'Noto Sans JP',sans-serif;
+        font-size:15px; font-weight:700; cursor:pointer; transition:all 0.2s;
+      ">キャンセル</button>
+      <button onclick="executeReset()" style="
+        flex:1; padding:13px; background:linear-gradient(135deg,#dc2626,#ef4444);
+        border:none; border-radius:12px; color:white; font-family:'Noto Sans JP',sans-serif;
+        font-size:15px; font-weight:700; cursor:pointer; transition:all 0.2s;
+        box-shadow:0 4px 14px rgba(239,68,68,0.35);
+      ">リセット実行</button>
+    </div>
   </div>
 </div>
 
@@ -775,6 +862,82 @@ function renderAll() {
   document.getElementById('totalIn').textContent = totalIn;
   document.getElementById('totalOut').textContent = totalOut;
   document.getElementById('totalAll').textContent = total;
+}
+
+// ===== RESET =====
+function showResetModal() {
+  const modal = document.getElementById('resetModal');
+  modal.style.display = 'flex';
+}
+
+function hideResetModal() {
+  document.getElementById('resetModal').style.display = 'none';
+}
+
+function executeReset() {
+  const chkStatus = document.getElementById('chk_status').checked;
+  const chkLog    = document.getElementById('chk_log').checked;
+  const chkLock   = document.getElementById('chk_lock').checked;
+
+  if (!chkStatus && !chkLog && !chkLock) {
+    alert('リセット対象を1つ以上選択してください。');
+    return;
+  }
+
+  // 出退室ステータスをリセット（全員入室中）
+  if (chkStatus) {
+    try {
+      // 名簿から全生徒の初期ステータスを生成
+      const initStatus = {};
+      Object.entries(roster).forEach(([grade, names]) => {
+        names.forEach(name => {
+          initStatus[`${grade}_${name}`] = { in: true, time: '--:--', phone: '' };
+        });
+      });
+      localStorage.setItem('attendance_status', JSON.stringify(initStatus));
+      status = initStatus;
+    } catch(e) {}
+  }
+
+  // 操作ログを削除
+  if (chkLog) {
+    localStorage.removeItem('attendance_log');
+  }
+
+  // ブルートフォースロックを解除
+  if (chkLock) {
+    localStorage.removeItem('bf_user');
+    localStorage.removeItem('bf_manage');
+  }
+
+  hideResetModal();
+
+  // 画面を再描画
+  renderAll();
+  renderLog();
+
+  // 完了トースト表示
+  showResetToast();
+}
+
+function showResetToast() {
+  let toast = document.getElementById('resetToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'resetToast';
+    toast.style.cssText = `
+      position:fixed; bottom:32px; left:50%; transform:translateX(-50%);
+      background:linear-gradient(135deg,#065f46,#059669);
+      color:white; padding:12px 24px; border-radius:50px;
+      font-family:'Noto Sans JP',sans-serif; font-size:14px; font-weight:700;
+      box-shadow:0 8px 24px rgba(0,0,0,0.4); z-index:2000;
+      opacity:0; transition:opacity 0.3s; white-space:nowrap;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.textContent = '✅ リセットが完了しました';
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 2500);
 }
 
 function updateClock() {
