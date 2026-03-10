@@ -352,7 +352,14 @@
 let roster = {};
 let status = {};
 
-// ===== ★ 設定エリア（index.htmlと同じ名簿を記入） =====
+// ===== ★ 設定エリア ==========================================
+// accesscode.txt の内容をそのままここに貼り付けてください
+const ACCESSCODE_TXT = `
+user 5556
+Manage 2019
+`;
+
+// 名簿 CSV の内容をそのままここに貼り付けてください
 const MEIBO_CSV = `学年,名前
 1年,佐藤琢磨
 1年,菊池裕也
@@ -361,8 +368,17 @@ const MEIBO_CSV = `学年,名前
 2年,遠藤悟
 2年,瀬川流`;
 
-// ★ 管理者専用アクセスコード（一般のアクセスコードとは別に設定）
-const ADMIN_CODE = '9999';
+// accesscode.txt をパースして user / Manage のコードを取り出す
+function parseAccessCodes(text) {
+  const codes = {};
+  text.trim().split('\n').forEach(line => {
+    const parts = line.trim().split(/\s+/);
+    if (parts.length >= 2) codes[parts[0].toLowerCase()] = parts[1];
+  });
+  return codes;
+}
+const _codes = parseAccessCodes(ACCESSCODE_TXT);
+const ADMIN_CODE = _codes['manage'] || '9999';
 // ============================================================
 
 let isUnlocked = false;
