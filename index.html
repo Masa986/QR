@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出退室管理システム</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --in: #10b981;
+    --out: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --border: rgba(0, 212, 255, 0.2);
+    --glow: 0 0 20px rgba(0, 212, 255, 0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    background-image: 
+      radial-gradient(ellipse at 20% 50%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(0, 212, 255, 0.06) 0%, transparent 50%);
+  }
+
+  /* ===== SCREEN MANAGEMENT ===== */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+
+  /* ===== LOCK SCREEN ===== */
+  #lockScreen {
+    background: var(--bg);
+  }
+
+  .lock-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: var(--glow), 0 25px 50px rgba(0,0,0,0.5);
+    animation: fadeIn 0.5s ease;
+  }
+
+  .lock-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    filter: drop-shadow(0 0 10px var(--accent));
+  }
+
+  .lock-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .lock-sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 32px;
+  }
+
+  .code-input-wrap {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+
+  .code-digit {
+    width: 56px;
+    height: 68px;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 28px;
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    caret-color: var(--accent);
+  }
+  .code-digit:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2), var(--glow);
+    background: rgba(0, 212, 255, 0.05);
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 0.05em;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 212, 255, 0.3);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .error-msg {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+    animation: shake 0.3s ease;
+  }
+  .error-msg.show { display: block; }
+
+  /* ===== GRADE SELECT SCREEN ===== */
+  #gradeScreen {
+    padding: 32px 20px;
+    justify-content: flex-start;
+    padding-top: 60px;
+  }
+
+  .app-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .app-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .app-heading {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .grade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .grade-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .grade-btn:nth-child(1) { animation-delay: 0.1s; }
+  .grade-btn:nth-child(2) { animation-delay: 0.2s; }
+  .grade-btn:nth-child(3) { animation-delay: 0.3s; }
+
+  .grade-btn:hover {
+    border-color: var(--accent);
+    background: rgba(0, 212, 255, 0.05);
+    transform: translateY(-4px);
+    box-shadow: var(--glow);
+  }
+
+  .grade-number {
+    font-size: 42px;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .grade-label {
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 500;
+  }
+
+  .grade-count {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text2);
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 20px;
+    padding: 2px 10px;
+    display: inline-block;
+  }
+
+  /* ===== ATTENDANCE SCREEN ===== */
+  #attendScreen {
+    padding: 24px 20px;
+    justify-content: flex-start;
+    padding-top: 40px;
+  }
+
+  .screen-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 28px;
+  }
+
+  .back-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text2);
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .back-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .screen-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .screen-subtitle {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+
+  .student-list {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .student-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s;
+    animation: fadeInUp 0.3s ease both;
+    cursor: pointer;
+  }
+  .student-card:hover {
+    border-color: rgba(0, 212, 255, 0.4);
+    background: rgba(0, 212, 255, 0.03);
+  }
+
+  .student-card.status-in {
+    border-left: 3px solid var(--in);
+  }
+  .student-card.status-out {
+    border-left: 3px solid var(--out);
+  }
+
+  .status-indicator {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  .status-in .status-indicator {
+    background: rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+  }
+  .status-out .status-indicator {
+    background: rgba(245, 158, 11, 0.15);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+  }
+
+  .student-name {
+    font-size: 17px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .status-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .toggle-opt {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-family: 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.05em;
+  }
+  .toggle-opt.in-opt:hover { background: rgba(16, 185, 129, 0.1); color: var(--in); }
+  .toggle-opt.out-opt:hover { background: rgba(245, 158, 11, 0.1); color: var(--out); }
+
+  .status-in .toggle-opt.in-opt {
+    background: var(--in);
+    color: white;
+  }
+  .status-out .toggle-opt.out-opt {
+    background: var(--out);
+    color: white;
+  }
+
+  .toggle-opt:disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .status-time {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'Share Tech Mono', monospace;
+    text-align: right;
+    margin-top: 2px;
+  }
+
+  .status-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .status-in .status-label { color: var(--in); }
+  .status-out .status-label { color: var(--out); }
+
+  /* ===== MONITOR LINK ===== */
+  .monitor-link {
+    margin-top: 32px;
+    text-align: center;
+  }
+
+  .monitor-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 24px;
+    color: var(--text2);
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .monitor-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ===== MONITOR SCREEN ===== */
+  #monitorScreen {
+    min-height: 100vh;
+    padding: 32px 24px;
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+
+  .monitor-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .monitor-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--text);
+  }
+
+  .monitor-title span {
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--in);
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--in);
+    animation: pulse 1.5s infinite;
+  }
+
+  .monitor-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stat-icon { font-size: 28px; }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 900;
+    font-family: 'Share Tech Mono', monospace;
+    line-height: 1;
+  }
+  .stat-value.in-val { color: var(--in); }
+  .stat-value.out-val { color: var(--out); }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .monitor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    width: 100%;
+  }
+
+  .grade-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .grade-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(0, 212, 255, 0.1));
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .grade-header-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .grade-in-count {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--in);
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 20px;
+    padding: 3px 12px;
+  }
+
+  .monitor-student-row {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.2s;
+  }
+  .monitor-student-row:last-child { border-bottom: none; }
+  .monitor-student-row:hover { background: rgba(255,255,255,0.02); }
+
+  .monitor-name {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  .monitor-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .badge-in {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--in);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .badge-out {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--out);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+  }
+
+  .monitor-time {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'Share Tech Mono', monospace;
+    margin-top: 2px;
+  }
+
+  /* ===== QR PAGE ===== */
+  #qrScreen {
+    text-align: center;
+  }
+
+  .qr-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: var(--glow), 0 25px 50px rgba(0,0,0,0.5);
+  }
+
+  .qr-placeholder {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 0 auto 24px;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* ===== TABS ===== */
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text2);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: white;
+    font-weight: 700;
+  }
+
+  .nav-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    background: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 12px 24px;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .clock-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--text2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+
+  /* ===== PHONE MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.show { display: flex; }
+
+  .modal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: var(--glow), 0 30px 60px rgba(0,0,0,0.6);
+    animation: fadeIn 0.25s ease;
+  }
+
+  .modal-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--out);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .modal-name {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--text);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .modal-sub {
+    font-size: 13px;
+    color: var(--text2);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .phone-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    caret-color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .phone-input:focus {
+    border-color: var(--out);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    background: rgba(245, 158, 11, 0.04);
+  }
+  .phone-input::placeholder { color: var(--text2); font-size: 14px; letter-spacing: 0; }
+
+  .modal-btns {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-cancel {
+    flex: 1;
+    padding: 13px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text2);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-cancel:hover { border-color: var(--accent); color: var(--text); }
+
+  .btn-out {
+    flex: 2;
+    padding: 13px;
+    background: linear-gradient(135deg, #d97706, var(--out));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-out:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(245,158,11,0.4); }
+  .btn-out:active { transform: translateY(0); }
+
+  .phone-skip {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+    background: none;
+    border: none;
+    font-family: 'Noto Sans JP', sans-serif;
+    width: 100%;
+  }
+  .phone-skip:hover { color: var(--text); }
+
+  /* 確認トースト */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--in);
+    color: var(--in);
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 999;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 480px) {
+    .lock-card { padding: 36px 24px; }
+    .code-digit { width: 48px; height: 60px; font-size: 24px; }
+    .grade-number { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen" class="screen active">
+  <div class="lock-card">
+    <div class="lock-icon">🔐</div>
+    <div class="lock-title">出退室管理システム</div>
+    <div class="lock-sub">アクセスコードを入力してください</div>
+    <div class="code-input-wrap" id="codeInputWrap">
+      <input class="code-digit" type="text" inputmode="numeric" maxlength="1" id="d0" autofocus>
+      <input class="code-digit" type="text" inputmode="numeric" maxlength="1" id="d1">
+      <input class="code-digit" type="text" inputmode="numeric" maxlength="1" id="d2">
+      <input class="code-digit" type="text" inputmode="numeric" maxlength="1" id="d3">
+    </div>
+    <button class="btn-primary" onclick="checkCode()">入室する →</button>
+    <div class="error-msg" id="errorMsg">❌ アクセスコードが正しくありません</div>
+  </div>
+</div>
+
+<!-- GRADE SELECT SCREEN -->
+<div id="gradeScreen" class="screen">
+  <div class="app-header">
+    <div class="app-title">ATTENDANCE SYSTEM</div>
+    <div class="app-heading">学年を選択</div>
+  </div>
+  <div class="grade-grid" id="gradeGrid"></div>
+
+  <div class="monitor-link" style="margin-top:32px">
+    <button class="monitor-btn" onclick="showMonitor()">
+      📊 モニター画面を開く
+    </button>
+  </div>
+</div>
+
+<!-- ATTENDANCE SCREEN -->
+<div id="attendScreen" class="screen">
+  <div class="screen-header">
+    <button class="back-btn" onclick="showGradeSelect()">← 戻る</button>
+    <div>
+      <div class="screen-title" id="attendTitle">学年</div>
+      <div class="screen-subtitle" id="attendSubtitle"></div>
+    </div>
+    <div style="margin-left:auto">
+      <div class="clock-display" id="clockSmall"></div>
+    </div>
+  </div>
+  <div class="student-list" id="studentList"></div>
+  <div style="height:80px"></div>
+</div>
+
+<!-- MONITOR SCREEN -->
+<div id="monitorScreen" class="screen">
+  <div class="monitor-header">
+    <div>
+      <div class="monitor-title">出退室 <span>MONITOR</span></div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px" id="monitorTime"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+      <button class="back-btn" onclick="showGradeSelect()">← 戻る</button>
+    </div>
+  </div>
+
+  <div class="monitor-stats">
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div>
+        <div class="stat-value in-val" id="totalIn">0</div>
+        <div class="stat-label">入室中</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🚶</div>
+      <div>
+        <div class="stat-value out-val" id="totalOut">0</div>
+        <div class="stat-label">退室</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div>
+        <div class="stat-value" id="totalAll">0</div>
+        <div class="stat-label">合計</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="monitor-grid" id="monitorGrid"></div>
+  <div style="height:32px"></div>
+</div>
+
+<!-- PHONE MODAL -->
+<div class="modal-overlay" id="phoneModal">
+  <div class="modal-card">
+    <div class="modal-icon">📞</div>
+    <div class="modal-title">退室 — 連絡先の記入</div>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-sub">外出先の電話番号を入力してください</div>
+    <input class="phone-input" type="tel" inputmode="tel" id="phoneInput" placeholder="例: 090-1234-5678">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-out" onclick="confirmOut()">退室を記録 →</button>
+    </div>
+    <button class="phone-skip" onclick="confirmOut(true)">電話番号をスキップして退室</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STATE =====
+let roster = {};        // { '1年': ['佐藤琢磨', ...], '2年': [...] }
+let status = {};        // { '1年_佐藤琢磨': { in: true, time: '...' } }
+let accessCode = '5556';
+let currentGrade = null;
+let monitorInterval = null;
+let clockInterval = null;
+
+// ===== LOAD FILES =====
+async function loadData() {
+  try {
+    // Load meibo.csv
+    const csvRes = await fetch('meibo.csv');
+    const csvText = await csvRes.text();
+    parseCsv(csvText);
+  } catch(e) {
+    console.warn('meibo.csv not found, using demo data');
+    // Demo data fallback
+    roster = {
+      '1年': ['佐藤琢磨', '菊池裕也'],
+      '2年': ['斎藤実子', '富山愛', '遠藤悟', '瀬川流']
+    };
+  }
+
+  try {
+    // Load accesscode.txt
+    const codeRes = await fetch('accesscode.txt');
+    const codeText = await codeRes.text();
+    accessCode = codeText.trim();
+  } catch(e) {
+    console.warn('accesscode.txt not found, using default');
+    accessCode = '5556';
+  }
+
+  // Init status - restore from storage first
+  try {
+    const saved = localStorage.getItem('attendance_status');
+    if (saved) status = JSON.parse(saved);
+  } catch(e) {}
+  
+  Object.keys(roster).forEach(grade => {
+    roster[grade].forEach(name => {
+      const key = `${grade}_${name}`;
+      if (!status[key]) {
+        status[key] = { in: true, time: '--:--' };
+      }
+    });
+  });
+}
+
+function parseCsv(text) {
+  const lines = text.trim().split('\n');
+  roster = {};
+  // Skip header
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = line.split(',');
+    const grade = cols[0]?.trim();
+    const name = cols[1]?.trim();
+    if (!grade || !name) continue;
+    if (!roster[grade]) roster[grade] = [];
+    roster[grade].push(name);
+  }
+}
+
+// ===== ACCESS CODE =====
+function setupCodeInputs() {
+  const digits = document.querySelectorAll('.code-digit');
+  digits.forEach((input, i) => {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/\D/g, '');
+      e.target.value = val ? val[val.length-1] : '';
+      if (val && i < digits.length - 1) {
+        digits[i+1].focus();
+      }
+      if (val && i === digits.length - 1) {
+        checkCode();
+      }
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && i > 0) {
+        digits[i-1].focus();
+        digits[i-1].value = '';
+      }
+    });
+  });
+}
+
+function checkCode() {
+  const digits = document.querySelectorAll('.code-digit');
+  const entered = Array.from(digits).map(d => d.value).join('');
+  if (entered === accessCode) {
+    showGradeSelect();
+  } else {
+    const err = document.getElementById('errorMsg');
+    err.classList.add('show');
+    digits.forEach(d => {
+      d.value = '';
+      d.style.borderColor = '#ef4444';
+      d.style.animation = 'shake 0.3s ease';
+    });
+    setTimeout(() => {
+      digits.forEach(d => {
+        d.style.borderColor = '';
+        d.style.animation = '';
+      });
+      err.classList.remove('show');
+      digits[0].focus();
+    }, 1500);
+  }
+}
+
+// ===== SCREEN NAVIGATION =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showGradeSelect() {
+  renderGradeGrid();
+  showScreen('gradeScreen');
+}
+
+function showGrade(grade) {
+  currentGrade = grade;
+  document.getElementById('attendTitle').textContent = grade;
+  const count = roster[grade]?.length || 0;
+  document.getElementById('attendSubtitle').textContent = `全${count}名`;
+  renderStudentList(grade);
+  showScreen('attendScreen');
+}
+
+function showMonitor() {
+  renderMonitor();
+  showScreen('monitorScreen');
+  if (monitorInterval) clearInterval(monitorInterval);
+  monitorInterval = setInterval(renderMonitor, 5000);
+}
+
+// ===== RENDER GRADE GRID =====
+function renderGradeGrid() {
+  const container = document.getElementById('gradeGrid');
+  const grades = Object.keys(roster).sort();
+  container.innerHTML = grades.map((grade, i) => {
+    const num = grade.replace(/[^0-9]/g, '');
+    const total = roster[grade].length;
+    const inCount = roster[grade].filter(n => status[`${grade}_${n}`]?.in !== false).length;
+    return `
+      <div class="grade-btn" onclick="showGrade('${grade}')" style="animation-delay:${i*0.1+0.1}s">
+        <div class="grade-number">${num}</div>
+        <div class="grade-label">${grade}</div>
+        <div class="grade-count">入室 ${inCount}/${total}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== RENDER STUDENT LIST =====
+function renderStudentList(grade) {
+  const container = document.getElementById('studentList');
+  const students = roster[grade] || [];
+  container.innerHTML = students.map((name, i) => {
+    const key = `${grade}_${name}`;
+    const st = status[key] || { in: true, time: '--:--' };
+    const isIn = st.in !== false;
+    const phone = st.phone || '';
+    return `
+      <div class="student-card ${isIn ? 'status-in' : 'status-out'}" id="card_${key.replace(/ /g,'_')}" style="animation-delay:${i*0.07}s">
+        <div class="status-indicator">${isIn ? '✅' : '🚶'}</div>
+        <div style="flex:1">
+          <div class="student-name">${name}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap">
+            <span class="status-label">${isIn ? '入室中' : '退室'}</span>
+            <span class="status-time">${st.time}</span>
+            ${!isIn && phone ? `<span style="font-size:11px;color:var(--out);font-family:'Share Tech Mono',monospace;">📞 ${phone}</span>` : ''}
+          </div>
+        </div>
+        <div class="status-toggle">
+          <button class="toggle-opt in-opt" onclick="setStatus('${grade}', '${name}', true, event)" ${isIn ? 'disabled' : ''}>入室</button>
+          <button class="toggle-opt out-opt" onclick="openPhoneModal('${grade}', '${name}', event)" ${!isIn ? 'disabled' : ''}>退室</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== PHONE MODAL =====
+let modalGrade = null, modalName_ = null;
+
+function openPhoneModal(grade, name, event) {
+  event?.stopPropagation();
+  modalGrade = grade;
+  modalName_ = name;
+  document.getElementById('modalName').textContent = name;
+  document.getElementById('phoneInput').value = '';
+  document.getElementById('phoneModal').classList.add('show');
+  setTimeout(() => document.getElementById('phoneInput').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('phoneModal').classList.remove('show');
+  modalGrade = null; modalName_ = null;
+}
+
+function confirmOut(skip = false) {
+  const phone = skip ? '' : document.getElementById('phoneInput').value.trim();
+  if (!skip && phone && !/^[\d\-\+\(\)\s]+$/.test(phone)) {
+    document.getElementById('phoneInput').style.borderColor = '#ef4444';
+    setTimeout(() => document.getElementById('phoneInput').style.borderColor = '', 1500);
+    return;
+  }
+  setStatusOut(modalGrade, modalName_, phone);
+  closeModal();
+}
+
+// ===== SAVE STATUS =====
+function saveStatus() {
+  try { localStorage.setItem('attendance_status', JSON.stringify(status)); } catch(e) {}
+}
+
+// ===== SET STATUS =====
+function setStatus(grade, name, isIn, event) {
+  event?.stopPropagation();
+  if (!isIn) { openPhoneModal(grade, name, event); return; }
+  const key = `${grade}_${name}`;
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  status[key] = { in: true, time: timeStr, phone: '' };
+  saveStatus();
+  updateCard(grade, name);
+  showToast(`${name} — 入室しました`);
+  renderGradeGrid();
+}
+
+function setStatusOut(grade, name, phone) {
+  const key = `${grade}_${name}`;
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  status[key] = { in: false, time: timeStr, phone: phone || '' };
+  saveStatus();
+  updateCard(grade, name);
+  showToast(`${name} — 退室しました${phone ? ' 📞 ' + phone : ''}`);
+  renderGradeGrid();
+}
+
+function updateCard(grade, name) {
+  const key = `${grade}_${name}`;
+  const st = status[key];
+  const isIn = st.in !== false;
+  const phone = st.phone || '';
+  const cardId = `card_${key.replace(/ /g,'_')}`;
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.className = `student-card ${isIn ? 'status-in' : 'status-out'}`;
+  card.querySelector('.status-indicator').textContent = isIn ? '✅' : '🚶';
+  card.querySelector('.status-label').textContent = isIn ? '入室中' : '退室';
+  card.querySelector('.status-time').textContent = st.time;
+  // update button disabled state
+  const inBtn = card.querySelector('.in-opt');
+  const outBtn = card.querySelector('.out-opt');
+  if (inBtn) inBtn.disabled = isIn;
+  if (outBtn) outBtn.disabled = !isIn;
+  // update phone display
+  const phoneEl = card.querySelector('.phone-display');
+  if (phoneEl) phoneEl.remove();
+  if (!isIn && phone) {
+    const wrap = card.querySelector('.status-label').parentElement;
+    const span = document.createElement('span');
+    span.className = 'phone-display';
+    span.style.cssText = 'font-size:11px;color:var(--out);font-family:"Share Tech Mono",monospace;';
+    span.textContent = `📞 ${phone}`;
+    wrap.appendChild(span);
+  }
+}
+
+// ===== RENDER MONITOR =====
+function renderMonitor() {
+  const grades = Object.keys(roster).sort();
+  let totalIn = 0, totalOut = 0, total = 0;
+
+  const html = grades.map(grade => {
+    const students = roster[grade] || [];
+    const inCount = students.filter(n => status[`${grade}_${n}`]?.in !== false).length;
+    totalIn += inCount;
+    totalOut += students.length - inCount;
+    total += students.length;
+
+    const rows = students.map(name => {
+      const key = `${grade}_${name}`;
+      const st = status[key] || { in: true, time: '--:--' };
+      const isIn = st.in !== false;
+      const phone = st.phone || '';
+      return `
+        <div class="monitor-student-row">
+          <div>
+            <div class="monitor-name">${name}</div>
+            <div class="monitor-time">${st.time !== '--:--' ? st.time : ''}</div>
+          </div>
+          <div style="text-align:right">
+            <span class="monitor-status-badge ${isIn ? 'badge-in' : 'badge-out'}">
+              ${isIn ? '✅ 入室中' : '🚶 退室'}
+            </span>
+            ${!isIn && phone ? `<div style="margin-top:4px;font-size:11px;color:var(--out);font-family:'Share Tech Mono',monospace;">📞 ${phone}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="grade-section">
+        <div class="grade-header">
+          <div class="grade-header-name">📚 ${grade}</div>
+          <div class="grade-in-count">入室 ${inCount}/${students.length}</div>
+        </div>
+        ${rows}
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('monitorGrid').innerHTML = html;
+  document.getElementById('totalIn').textContent = totalIn;
+  document.getElementById('totalOut').textContent = totalOut;
+  document.getElementById('totalAll').textContent = total;
+
+  const now = new Date();
+  document.getElementById('monitorTime').textContent = 
+    `最終更新: ${now.toLocaleTimeString('ja-JP')}`;
+}
+
+// ===== CLOCK =====
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const str = now.toLocaleTimeString('ja-JP');
+    const el = document.getElementById('clockSmall');
+    if (el) el.textContent = str;
+  }
+  tick();
+  clockInterval = setInterval(tick, 1000);
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===== INIT =====
+(async function init() {
+  document.getElementById('phoneInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmOut();
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Click overlay to close
+  document.getElementById('phoneModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('phoneModal')) closeModal();
+  });
+
+  await loadData();
+  setupCodeInputs();
+  startClock();
+  
+  // Check URL params for direct monitor access
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('monitor') === '1') {
+    showMonitor();
+  }
+})();
+</script>
+</body>
+</html>

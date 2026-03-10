@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRコード生成</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+  :root {
+    --bg: #0a0e17; --surface: #111827; --accent: #00d4ff;
+    --text: #e2e8f0; --text2: #94a3b8; --border: rgba(0,212,255,0.2);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0,212,255,0.15);
+  }
+  .label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
+  .sub { font-size: 13px; color: var(--text2); margin-bottom: 32px; }
+  #qrcode {
+    display: flex; justify-content: center;
+    margin-bottom: 24px;
+  }
+  #qrcode canvas, #qrcode img { border-radius: 12px; }
+  .url-box {
+    background: rgba(0,212,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    word-break: break-all;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .hint {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+  .hint strong { color: var(--text); }
+  .btn {
+    margin-top: 24px;
+    padding: 12px 28px;
+    background: linear-gradient(135deg, #7c3aed, var(--accent));
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="label">SETUP</div>
+  <h1>📱 QRコード</h1>
+  <p class="sub">このQRコードをスマホで読み取ると<br>出退室システムにアクセスできます</p>
+  <div id="qrcode"></div>
+  <div class="url-box" id="urlBox">URLを読み込み中...</div>
+  <p class="hint">
+    <strong>使い方:</strong><br>
+    1. QRコードを印刷または表示<br>
+    2. スマホカメラで読み取る<br>
+    3. アクセスコードを入力<br>
+    4. 学年を選んで出退室を切り替え
+  </p>
+  <button class="btn" onclick="window.print()">🖨️ 印刷する</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  // Current page's index.html URL
+  const baseUrl = window.location.href.replace('qr.html', 'index.html');
+  document.getElementById('urlBox').textContent = baseUrl;
+  
+  new QRCode(document.getElementById('qrcode'), {
+    text: baseUrl,
+    width: 220,
+    height: 220,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+</script>
+</body>
+</html>

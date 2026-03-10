@@ -3,276 +3,414 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh" content="30">
 <title>出退室モニター</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Share+Tech+Mono&display=swap');
+
   :root {
-    --bg: #060610; --surface: #0e0e1a; --card: #141422;
-    --accent: #00e5ff; --accent2: #7c3aed;
-    --success: #00ff88; --danger: #ff3b5c;
-    --text: #f0f0ff; --muted: #5a5a7a;
-    --border: rgba(0,229,255,0.1); --grid-color: rgba(0,229,255,0.04);
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --in: #10b981;
+    --out: #f59e0b;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --border: rgba(0, 212, 255, 0.2);
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; min-height: 100vh; }
-  body::before {
-    content: ''; position: fixed; inset: 0;
-    background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
-                      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-    background-size: 40px 40px; pointer-events: none; z-index: 0;
-  }
-  body::after {
-    content: ''; position: fixed; top: 0; left: 0; right: 0; height: 40vh;
-    background: radial-gradient(ellipse at 50% -20%, rgba(124,58,237,0.2) 0%, transparent 70%);
-    pointer-events: none; z-index: 0;
-  }
-  .wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
 
-  /* Top bar */
-  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; flex-wrap: wrap; gap: 16px; }
-  .brand { display: flex; align-items: center; gap: 14px; }
-  .brand-icon {
-    width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent2), var(--accent));
-    border-radius: 14px; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 20px rgba(0,229,255,0.2);
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding: 32px;
+    background-image: 
+      radial-gradient(ellipse at 10% 50%, rgba(124, 58, 237, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 90% 10%, rgba(0, 212, 255, 0.05) 0%, transparent 50%);
   }
-  .brand-icon svg { width: 24px; height: 24px; fill: white; }
-  .brand-text h1 { font-size: 20px; font-weight: 900; letter-spacing: 0.05em; }
-  .brand-text p  { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; letter-spacing: 0.1em; }
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .title-block {}
+
+  .title-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+    margin-bottom: 8px;
+  }
+
+  .main-title {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .main-title span { color: var(--accent); }
+
+  .header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .clock {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  .date-str {
+    font-size: 14px;
+    color: var(--text2);
+  }
+
   .live-badge {
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.2);
-    border-radius: 100px; padding: 8px 16px;
-    font-size: 12px; font-weight: 700; color: var(--success);
-    font-family: 'Space Mono', monospace; letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--in);
   }
-  .live-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: blink 1.5s ease-in-out infinite; box-shadow: 0 0 8px var(--success); }
-  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-  .clock { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--muted); }
 
-  /* Stats */
-  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 16px; margin-bottom: 36px; }
-  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; text-align: center; position: relative; overflow: hidden; }
-  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-  .stat-card.total::before   { background: linear-gradient(90deg, var(--accent2), var(--accent)); }
-  .stat-card.present::before { background: var(--success); }
-  .stat-card.absent::before  { background: var(--muted); }
-  .stat-num { font-size: 40px; font-weight: 900; font-family: 'Space Mono', monospace; line-height: 1; margin-bottom: 6px; }
-  .stat-card.total .stat-num   { color: var(--accent); }
-  .stat-card.present .stat-num { color: var(--success); }
-  .stat-card.absent .stat-num  { color: var(--muted); }
-  .stat-label { font-size: 12px; color: var(--muted); letter-spacing: 0.08em; }
-
-  /* Progress */
-  .attendance-bar { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 24px; margin-bottom: 36px; }
-  .bar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .bar-header span { font-size: 12px; font-family: 'Space Mono', monospace; color: var(--muted); letter-spacing: 0.1em; }
-  .bar-header strong { font-size: 14px; color: var(--accent); }
-  .progress-track { height: 8px; background: var(--surface); border-radius: 100px; overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--success)); border-radius: 100px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 0 10px rgba(0,255,136,0.3); }
-
-  /* Grade sections */
-  .grade-section { margin-bottom: 32px; }
-  .grade-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .grade-tag { font-size: 11px; font-weight: 700; font-family: 'Space Mono', monospace; letter-spacing: 0.12em; color: var(--accent); background: rgba(0,229,255,0.08); border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px; }
-  .grade-title { font-size: 20px; font-weight: 900; letter-spacing: 0.05em; }
-  .grade-count { margin-left: auto; font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
-  .grade-count span { color: var(--success); }
-  .students-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px; }
-
-  /* Student cards */
-  .student-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; transition: all 0.4s; position: relative; overflow: hidden; animation: fadeIn 0.4s ease forwards; }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-  .student-card::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(0,255,136,0.05),transparent); opacity:0; transition:opacity 0.4s; }
-  .student-card.present { border-color:rgba(0,255,136,0.3); box-shadow:0 0 20px rgba(0,255,136,0.05); }
-  .student-card.present::before { opacity:1; }
-  .card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
-  .avatar { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; background:var(--surface); border:1px solid var(--border); transition:all 0.4s; }
-  .student-card.present .avatar { background:rgba(0,255,136,0.1); border-color:rgba(0,255,136,0.3); color:var(--success); box-shadow:0 0 16px rgba(0,255,136,0.2); }
-  .status-indicator { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; font-family:'Space Mono',monospace; letter-spacing:0.08em; padding:4px 10px; border-radius:100px; }
-  .status-indicator.in  { color:var(--success); background:rgba(0,255,136,0.1);    border:1px solid rgba(0,255,136,0.2); }
-  .status-indicator.out { color:var(--muted);   background:rgba(107,107,138,0.1); border:1px solid rgba(107,107,138,0.2); }
-  .status-dot { width:6px; height:6px; border-radius:50%; }
-  .status-indicator.in .status-dot { background:var(--success); box-shadow:0 0 6px var(--success); animation:blink 1.5s ease-in-out infinite; }
-  .status-indicator.out .status-dot { background:var(--muted); }
-  .student-name { font-size:16px; font-weight:700; }
-  .student-time { font-size:11px; color:var(--muted); font-family:'Space Mono',monospace; margin-top:4px; }
-  .student-card.present .student-time { color:rgba(0,255,136,0.6); }
-
-  .divider { height:1px; background:var(--border); margin:32px 0; }
-  .footer { text-align:center; padding:20px 0; font-size:11px; color:var(--muted); font-family:'Space Mono',monospace; letter-spacing:0.08em; }
-
-  /* CSV reload notice */
-  .csv-notice {
-    display:flex; align-items:center; gap:10px;
-    background:rgba(0,229,255,0.06); border:1px solid var(--border);
-    border-radius:12px; padding:12px 16px; margin-bottom:24px;
-    font-size:12px; color:var(--muted); font-family:'Space Mono',monospace;
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--in);
+    animation: pulse 1.5s infinite;
   }
-  .csv-notice span { color:var(--accent); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stat-icon { font-size: 28px; }
+
+  .stat-value {
+    font-size: 40px;
+    font-weight: 900;
+    font-family: 'Share Tech Mono', monospace;
+    line-height: 1;
+  }
+  .in-val { color: var(--in); }
+  .out-val { color: var(--out); }
+
+  .stat-label { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  .grade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .grade-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .grade-head {
+    padding: 14px 20px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(0, 212, 255, 0.1));
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .grade-head-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .in-chip {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--in);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+  }
+
+  .student-row {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .student-row:last-child { border-bottom: none; }
+  .student-row.is-in { background: rgba(16, 185, 129, 0.03); }
+  .student-row.is-out { background: rgba(245, 158, 11, 0.02); }
+
+  .s-name { font-size: 16px; font-weight: 600; }
+
+  .s-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .badge-in {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--in);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .badge-out {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--out);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+
+  .s-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .s-phone {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--out);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 6px;
+    padding: 2px 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .footer {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 16px; }
+    .stats-row { grid-template-columns: 1fr; }
+    .main-title { font-size: 26px; }
+    .clock { font-size: 24px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrapper">
-  <div class="topbar">
-    <div class="brand">
-      <div class="brand-icon">
-        <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-      </div>
-      <div class="brand-text">
-        <h1>出退室モニター</h1>
-        <p>ATTENDANCE MONITOR — LIVE</p>
-      </div>
-    </div>
-    <div class="live-badge">
-      <div class="live-dot"></div>
-      LIVE &nbsp;
-      <span class="clock" id="clock">--:--:--</span>
-    </div>
-  </div>
 
-  <div class="csv-notice">
-    📄 名簿ファイル：<span>meibo.csv</span>　／　名簿は30秒ごとに自動再読み込みされます
+<div class="header">
+  <div class="title-block">
+    <div class="title-label">ATTENDANCE MONITOR</div>
+    <div class="main-title">出退室 <span>STATUS</span></div>
   </div>
-
-  <div class="stats-row">
-    <div class="stat-card total">   <div class="stat-num" id="total-count">-</div>   <div class="stat-label">総人数</div></div>
-    <div class="stat-card present"> <div class="stat-num" id="present-count">-</div> <div class="stat-label">入室中</div></div>
-    <div class="stat-card absent">  <div class="stat-num" id="absent-count">-</div>  <div class="stat-label">退室中</div></div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="date-str" id="dateStr">----</div>
   </div>
-
-  <div class="attendance-bar">
-    <div class="bar-header">
-      <span>出席率</span>
-      <strong id="percent-text">-%</strong>
-    </div>
-    <div class="progress-track">
-      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
-    </div>
-  </div>
-
-  <div id="monitor-content"></div>
-  <div class="footer" id="last-updated">読み込み中...</div>
 </div>
 
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div>
+      <div class="stat-value in-val" id="totalIn">0</div>
+      <div class="stat-label">入室中</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">🚶</div>
+    <div>
+      <div class="stat-value out-val" id="totalOut">0</div>
+      <div class="stat-label">退室</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">👥</div>
+    <div>
+      <div class="stat-value" id="totalAll">0</div>
+      <div class="stat-label">合計</div>
+    </div>
+  </div>
+</div>
+
+<div class="grade-grid" id="gradeGrid"></div>
+
+<div class="footer" id="footer">最終更新: -- | 30秒ごとに自動リロード</div>
+
 <script>
-let students = {};        // { "1年": ["name",...], ... }
-let lastAttendanceTs = 0;
-let lastCsvText = '';
+let roster = {};
+let status = {};
 
-// ── 時計 ─────────────────────────────────────
-function updateClock() {
-  document.getElementById('clock').textContent =
-    new Date().toLocaleTimeString('ja-JP');
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ── CSV 読み込み ─────────────────────────────
-async function loadCSV() {
+async function loadData() {
   try {
-    const res = await fetch('meibo.csv?_=' + Date.now());   // キャッシュ回避
-    if (!res.ok) throw new Error();
-    const text = await res.text();
-    if (text === lastCsvText) return;   // 変化なければスキップ
-    lastCsvText = text;
-    parseCSV(text);
-    render();
-  } catch {
-    document.getElementById('last-updated').textContent = '⚠️ meibo.csv の読み込みに失敗しました';
+    const csvRes = await fetch('meibo.csv');
+    const csvText = await csvRes.text();
+    parseCsv(csvText);
+  } catch(e) {
+    roster = {
+      '1年': ['佐藤琢磨', '菊池裕也'],
+      '2年': ['斎藤実子', '富山愛', '遠藤悟', '瀬川流']
+    };
   }
-}
 
-function parseCSV(text) {
-  students = {};
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  const start = lines[0].startsWith('学年') ? 1 : 0;
-  lines.slice(start).forEach(line => {
-    const [grade, name] = line.split(',').map(s => s.trim());
-    if (!grade || !name) return;
-    if (!students[grade]) students[grade] = [];
-    students[grade].push(name);
-  });
-}
+  // Load status from shared storage (localStorage as cross-page state)
+  try {
+    const saved = localStorage.getItem('attendance_status');
+    if (saved) status = JSON.parse(saved);
+  } catch(e) {}
 
-// ── 描画 ─────────────────────────────────────
-function getStatus() {
-  try { return JSON.parse(localStorage.getItem('attendance') || '{}'); } catch { return {}; }
-}
-
-function render() {
-  const status = getStatus();
-  const allNames = Object.values(students).flat();
-  const total   = allNames.length;
-  const present = allNames.filter(n => status[n] === 'in').length;
-  const absent  = total - present;
-  const pct     = total > 0 ? Math.round(present / total * 100) : 0;
-
-  document.getElementById('total-count').textContent   = total;
-  document.getElementById('present-count').textContent = present;
-  document.getElementById('absent-count').textContent  = absent;
-  document.getElementById('percent-text').textContent  = pct + '%';
-  document.getElementById('progress-fill').style.width = pct + '%';
-
-  const content = document.getElementById('monitor-content');
-  content.innerHTML = '';
-  const grades = Object.keys(students);
-
-  grades.forEach((grade, idx) => {
-    const names = students[grade];
-    const gradePresent = names.filter(n => status[n] === 'in').length;
-    const m = grade.match(/^(\d+)/);
-    const gradeNum = m ? m[1] : grade;
-
-    const section = document.createElement('div');
-    section.className = 'grade-section';
-    section.innerHTML = `
-      <div class="grade-header">
-        <div class="grade-tag">GRADE ${gradeNum}</div>
-        <div class="grade-title">${grade}生</div>
-        <div class="grade-count"><span>${gradePresent}</span> / ${names.length} 入室中</div>
-      </div>
-      <div class="students-grid" id="grid-${gradeNum}"></div>
-      ${idx < grades.length - 1 ? '<div class="divider"></div>' : ''}
-    `;
-    content.appendChild(section);
-
-    const grid = section.querySelector(`#grid-${gradeNum}`);
-    names.forEach((name, i) => {
-      const isIn = status[name] === 'in';
-      const card = document.createElement('div');
-      card.className = `student-card ${isIn ? 'present' : ''}`;
-      card.style.animationDelay = `${i * 0.05}s`;
-      card.innerHTML = `
-        <div class="card-top">
-          <div class="avatar">${name.charAt(0)}</div>
-          <div class="status-indicator ${isIn ? 'in' : 'out'}">
-            <div class="status-dot"></div>${isIn ? '入室中' : '退室中'}
-          </div>
-        </div>
-        <div class="student-name">${name}</div>
-        <div class="student-time">${isIn ? '在室確認済' : '---'}</div>
-      `;
-      grid.appendChild(card);
+  // Init defaults
+  Object.keys(roster).forEach(grade => {
+    roster[grade].forEach(name => {
+      const key = `${grade}_${name}`;
+      if (!status[key]) status[key] = { in: true, time: '--:--' };
     });
   });
 
-  document.getElementById('last-updated').textContent =
-    '最終更新: ' + new Date().toLocaleTimeString('ja-JP');
+  renderAll();
 }
 
-// ── ポーリング ────────────────────────────────
-function checkAttendance() {
-  const ts = parseInt(localStorage.getItem('attendance_updated') || '0');
-  if (ts > lastAttendanceTs) { lastAttendanceTs = ts; render(); }
+function parseCsv(text) {
+  const lines = text.trim().split('\n');
+  roster = {};
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cols = line.split(',');
+    const grade = cols[0]?.trim();
+    const name = cols[1]?.trim();
+    if (!grade || !name) continue;
+    if (!roster[grade]) roster[grade] = [];
+    roster[grade].push(name);
+  }
 }
 
-// 出退室変化: 1秒ごと
-setInterval(checkAttendance, 1000);
-// 名簿 CSV: 30秒ごと再読み込み（ファイル更新を自動反映）
-setInterval(loadCSV, 30000);
+function renderAll() {
+  const grades = Object.keys(roster).sort();
+  let totalIn = 0, totalOut = 0, total = 0;
 
-loadCSV();
+  const html = grades.map(grade => {
+    const students = roster[grade] || [];
+    const inCount = students.filter(n => status[`${grade}_${n}`]?.in !== false).length;
+    totalIn += inCount;
+    totalOut += students.length - inCount;
+    total += students.length;
+
+    const rows = students.map(name => {
+      const key = `${grade}_${name}`;
+      const st = status[key] || { in: true, time: '--:--' };
+      const isIn = st.in !== false;
+      const phone = st.phone || '';
+      return `
+        <div class="student-row ${isIn ? 'is-in' : 'is-out'}">
+          <div class="s-name">${name}</div>
+          <div class="s-right">
+            <span class="status-badge ${isIn ? 'badge-in' : 'badge-out'}">
+              ${isIn ? '✅ 入室中' : '🚶 退室'}
+            </span>
+            ${st.time !== '--:--' ? `<span class="s-time">${st.time}</span>` : ''}
+            ${!isIn && phone ? `<span class="s-phone">📞 ${phone}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="grade-section">
+        <div class="grade-head">
+          <div class="grade-head-name">📚 ${grade}</div>
+          <div class="in-chip">入室 ${inCount}/${students.length}</div>
+        </div>
+        ${rows}
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('gradeGrid').innerHTML = html;
+  document.getElementById('totalIn').textContent = totalIn;
+  document.getElementById('totalOut').textContent = totalOut;
+  document.getElementById('totalAll').textContent = total;
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('ja-JP');
+  document.getElementById('dateStr').textContent = now.toLocaleDateString('ja-JP', {
+    year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+  });
+  document.getElementById('footer').textContent = 
+    `最終更新: ${now.toLocaleTimeString('ja-JP')} | 30秒ごとに自動リロード`;
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+
+// Reload status from storage every 5 seconds
+setInterval(() => {
+  try {
+    const saved = localStorage.getItem('attendance_status');
+    if (saved) {
+      status = JSON.parse(saved);
+      renderAll();
+    }
+  } catch(e) {}
+}, 5000);
+
+loadData();
 </script>
 </body>
 </html>
