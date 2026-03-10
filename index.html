@@ -1091,6 +1091,28 @@ function saveStatus() {
   try { localStorage.setItem('attendance_status', JSON.stringify(status)); } catch(e) {}
 }
 
+// ===== LOG =====
+const LOG_KEY = 'attendance_log';
+const LOG_MAX = 500; // 最大保持件数
+
+function appendLog(grade, name, action, phone) {
+  try {
+    const logs = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+    const now  = new Date();
+    logs.unshift({
+      ts:     now.toISOString(),
+      date:   now.toLocaleDateString('ja-JP', { month:'2-digit', day:'2-digit' }),
+      time:   `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`,
+      grade:  grade,
+      name:   name,
+      action: action,   // '入室' or '退室'
+      phone:  phone || ''
+    });
+    if (logs.length > LOG_MAX) logs.splice(LOG_MAX);
+    localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+  } catch(e) {}
+}
+
 // ===== SET STATUS =====
 function setStatus(grade, name, isIn, event) {
   event?.stopPropagation();
@@ -1100,6 +1122,7 @@ function setStatus(grade, name, isIn, event) {
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   status[key] = { in: true, time: timeStr, phone: '' };
   saveStatus();
+  appendLog(grade, name, '入室', '');
   operationDone = true;
   updateCard(grade, name);
   showToast(`${name} — 入室しました`);
@@ -1112,6 +1135,7 @@ function setStatusOut(grade, name, phone) {
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   status[key] = { in: false, time: timeStr, phone: phone || '' };
   saveStatus();
+  appendLog(grade, name, '退室', phone);
   operationDone = true;
   updateCard(grade, name);
   showToast(`${name} — 退室しました${phone ? ' 📞 ' + phone : ''}`);

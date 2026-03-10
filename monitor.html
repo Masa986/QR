@@ -236,6 +236,158 @@
     font-family: 'Share Tech Mono', monospace;
   }
 
+  /* ===== LOG PANEL ===== */
+  .log-panel {
+    margin-top: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .log-panel-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(0,212,255,0.1));
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .log-panel-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .log-filter-wrap {
+    display: flex;
+    gap: 8px;
+  }
+
+  .log-filter-wrap select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .log-dl-btn {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    color: var(--accent);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .log-dl-btn:hover { background: rgba(0,212,255,0.2); }
+
+  .log-clear-btn {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 8px;
+    color: #f87171;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .log-clear-btn:hover { background: rgba(239,68,68,0.18); }
+
+  #logTableWrap {
+    overflow-x: auto;
+  }
+
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .log-table thead th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .log-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+  }
+  .log-table tbody tr:last-child { border-bottom: none; }
+  .log-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  .log-table tbody td {
+    padding: 11px 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .log-table .td-time {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text2);
+    font-size: 12px;
+  }
+
+  .log-table .td-date {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text2);
+    font-size: 12px;
+  }
+
+  .log-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .log-badge-in {
+    background: rgba(16,185,129,0.15);
+    color: var(--in);
+    border: 1px solid rgba(16,185,129,0.3);
+  }
+  .log-badge-out {
+    background: rgba(245,158,11,0.1);
+    color: var(--out);
+    border: 1px solid rgba(245,158,11,0.25);
+  }
+
+  .log-phone {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: var(--out);
+  }
+
+  .log-empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--text2);
+    font-size: 14px;
+  }
+
   @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(0.8); }
@@ -340,6 +492,43 @@
 
 <div class="grade-grid" id="gradeGrid"></div>
 
+<!-- ログパネル -->
+<div class="log-panel">
+  <div class="log-panel-header">
+    <div class="log-panel-title">📋 操作ログ</div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div class="log-filter-wrap">
+        <select id="logFilterGrade" onchange="renderLog()">
+          <option value="">全学年</option>
+        </select>
+        <select id="logFilterAction" onchange="renderLog()">
+          <option value="">全操作</option>
+          <option value="入室">入室のみ</option>
+          <option value="退室">退室のみ</option>
+        </select>
+      </div>
+      <button class="log-dl-btn" onclick="downloadLogCSV()">⬇ CSV保存</button>
+      <button class="log-clear-btn" onclick="clearLog()">🗑 ログ削除</button>
+    </div>
+  </div>
+  <div id="logTableWrap">
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>時刻</th>
+          <th>学年</th>
+          <th>氏名</th>
+          <th>操作</th>
+          <th>電話番号</th>
+        </tr>
+      </thead>
+      <tbody id="logTableBody"></tbody>
+    </table>
+    <div id="logEmpty" class="log-empty" style="display:none;">操作履歴がありません</div>
+  </div>
+</div>
+
 <div class="footer" id="footer">最終更新: -- | 5秒ごとに自動更新</div>
 
 </div><!-- /monitorContent -->
@@ -382,6 +571,8 @@ function loadData() {
   });
 
   renderAll();
+  populateGradeFilter();
+  renderLog();
 }
 
 // ===== BRUTE FORCE PROTECTION (管理者用) =====
@@ -471,6 +662,7 @@ function checkAdminCode() {
       try {
         const saved = localStorage.getItem('attendance_status');
         if (saved) { status = JSON.parse(saved); renderAll(); }
+        renderLog();
       } catch(e) {}
     }, 5000);
   } else {
@@ -583,7 +775,84 @@ function updateClock() {
     year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
   });
   document.getElementById('footer').textContent = 
-    `最終更新: ${now.toLocaleTimeString('ja-JP')} | 30秒ごとに自動リロード`;
+    `最終更新: ${now.toLocaleTimeString('ja-JP')} | 5秒ごとに自動更新`;
+}
+
+// ===== LOG =====
+const LOG_KEY = 'attendance_log';
+
+function getLog() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function renderLog() {
+  const logs      = getLog();
+  const filterGr  = document.getElementById('logFilterGrade')?.value || '';
+  const filterAct = document.getElementById('logFilterAction')?.value || '';
+  const tbody     = document.getElementById('logTableBody');
+  const emptyEl   = document.getElementById('logEmpty');
+  if (!tbody) return;
+
+  const filtered = logs.filter(l =>
+    (!filterGr  || l.grade  === filterGr)  &&
+    (!filterAct || l.action === filterAct)
+  );
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td class="td-date">${l.date || ''}</td>
+      <td class="td-time">${l.time}</td>
+      <td>${l.grade}</td>
+      <td style="font-weight:600">${l.name}</td>
+      <td>
+        <span class="log-badge ${l.action === '入室' ? 'log-badge-in' : 'log-badge-out'}">
+          ${l.action === '入室' ? '✅' : '🚶'} ${l.action}
+        </span>
+      </td>
+      <td class="log-phone">${l.phone ? '📞 ' + l.phone : '<span style="color:var(--text2);font-size:11px;">—</span>'}</td>
+    </tr>
+  `).join('');
+}
+
+function populateGradeFilter() {
+  const sel    = document.getElementById('logFilterGrade');
+  if (!sel) return;
+  const grades = Object.keys(roster).sort();
+  grades.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = g;
+    sel.appendChild(opt);
+  });
+}
+
+function downloadLogCSV() {
+  const logs = getLog();
+  if (logs.length === 0) { alert('ログがありません'); return; }
+  const header = '日付,時刻,学年,氏名,操作,電話番号\n';
+  const rows   = logs.map(l =>
+    `${l.date || ''},${l.time},${l.grade},${l.name},${l.action},${l.phone || ''}`
+  ).join('\n');
+  const blob   = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  const now    = new Date();
+  a.href       = url;
+  a.download   = `attendance_log_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function clearLog() {
+  if (!confirm('操作ログをすべて削除しますか？\nこの操作は元に戻せません。')) return;
+  localStorage.removeItem(LOG_KEY);
+  renderLog();
 }
 
 setInterval(updateClock, 1000);
