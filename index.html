@@ -739,13 +739,13 @@
     <div class="modal-icon">📞</div>
     <div class="modal-title">退室 — 連絡先の記入</div>
     <div class="modal-name" id="modalName"></div>
-    <div class="modal-sub">外出先の電話番号を入力してください</div>
+    <div class="modal-sub">外出先の電話番号を入力してください<br><span style="color:#ef4444;font-size:12px;font-weight:700;">※ 必須入力です</span></div>
     <input class="phone-input" type="tel" inputmode="tel" id="phoneInput" placeholder="例: 090-1234-5678">
+    <div id="phoneError" style="color:#ef4444;font-size:12px;margin-bottom:10px;display:none;">📵 電話番号を入力してください</div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
       <button class="btn-out" onclick="confirmOut()">退室を記録 →</button>
     </div>
-    <button class="phone-skip" onclick="confirmOut(true)">電話番号をスキップして退室</button>
   </div>
 </div>
 
@@ -1066,6 +1066,8 @@ function openPhoneModal(grade, name, event) {
   modalName_ = name;
   document.getElementById('modalName').textContent = name;
   document.getElementById('phoneInput').value = '';
+  document.getElementById('phoneInput').style.borderColor = '';
+  document.getElementById('phoneError').style.display = 'none';
   document.getElementById('phoneModal').classList.add('show');
   setTimeout(() => document.getElementById('phoneInput').focus(), 100);
 }
@@ -1075,13 +1077,31 @@ function closeModal() {
   modalGrade = null; modalName_ = null;
 }
 
-function confirmOut(skip = false) {
-  const phone = skip ? '' : document.getElementById('phoneInput').value.trim();
-  if (!skip && phone && !/^[\d\-\+\(\)\s]+$/.test(phone)) {
-    document.getElementById('phoneInput').style.borderColor = '#ef4444';
-    setTimeout(() => document.getElementById('phoneInput').style.borderColor = '', 1500);
+function confirmOut() {
+  const phone    = document.getElementById('phoneInput').value.trim();
+  const errEl    = document.getElementById('phoneError');
+  const inputEl  = document.getElementById('phoneInput');
+
+  // 空欄チェック
+  if (!phone) {
+    errEl.textContent = '📵 電話番号を入力してください';
+    errEl.style.display = 'block';
+    inputEl.style.borderColor = '#ef4444';
+    inputEl.focus();
+    setTimeout(() => { inputEl.style.borderColor = ''; }, 1500);
     return;
   }
+  // 形式チェック（数字・ハイフン・+・括弧・スペースのみ許可）
+  if (!/^[\d\-\+\(\)\s]+$/.test(phone)) {
+    errEl.textContent = '⚠️ 正しい電話番号を入力してください';
+    errEl.style.display = 'block';
+    inputEl.style.borderColor = '#ef4444';
+    inputEl.focus();
+    setTimeout(() => { inputEl.style.borderColor = ''; }, 1500);
+    return;
+  }
+
+  errEl.style.display = 'none';
   setStatusOut(modalGrade, modalName_, phone);
   closeModal();
 }
